@@ -10,9 +10,19 @@ anyhow = "1.0.79"
 blst = "0.3.11"
 getset = "0.1.2"
 proptest = "1.4.0"
+test-strategy = "0.3.1"
 thiserror = "1.0.56"
 bcs = { git = "https://github.com/aptos-labs/bcs.git", rev = "d31fab9d81748e2594be5cd5cdf845786a30562d" } 
 tiny-keccak = { version = "2.0.2", features = ["sha3"] }
 serde = "1.0.195"
 serde_bytes = "0.11.14"
 
+# shallow cloning would sure help here https://github.com/rust-lang/cargo/issues/1171
+# aptos-core = { git = "https://github.com/aptos-labs/aptos-core.git", tag = "aptos-node-v1.9.1", optional = true }
+# aptos-types = { git = "https://github.com/aptos-labs/aptos-core.git", tag = "aptos-node-v1.9.1", optional = true }
+
+
+[dev-dependencies]
+
+[features]
+# aptos = ["dep:aptos-core", "dep:aptos-types"]

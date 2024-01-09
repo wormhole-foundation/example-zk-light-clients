@@ -1,6 +1,6 @@
 //! structs reproduced identically with BCS derived ser/de
 //!
-use std::{ops::Deref, collections::HashMap};
+use std::{collections::HashMap, ops::Deref};
 
 // for ser/de
 // https://github.com/aptos-labs/bcs/commit/d31fab9d81748e2594be5cd5cdf845786a30562d
@@ -8,11 +8,16 @@ use std::{ops::Deref, collections::HashMap};
 use anyhow::{bail, ensure, format_err, Result};
 use blst::BLST_ERROR;
 use getset::{CopyGetters, Getters};
+use proptest::{
+    arbitrary::{any, Arbitrary},
+    strategy::{BoxedStrategy, Strategy},
+};
 use serde::{Serialize, Serializer};
+use test_strategy::Arbitrary;
 use thiserror::Error;
 use tiny_keccak::Hasher;
 
-#[derive(Debug, PartialEq, Eq, Serialize, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Serialize, Clone, Copy, Arbitrary)]
 pub struct HashValue {
     hash: [u8; 32],
 }
@@ -20,7 +25,7 @@ pub struct HashValue {
 pub type Round = u64;
 pub type Version = u64;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Arbitrary)]
 pub struct EpochState {
     pub epoch: u64,
     pub verifier: ValidatorVerifier,
@@ -47,7 +52,7 @@ impl EpochState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy, Arbitrary)]
 pub struct AccountAddress([u8; 16]);
 
 impl Serialize for AccountAddress {
@@ -65,10 +70,27 @@ pub struct PublicKey {
     pub(crate) pubkey: blst::min_pk::PublicKey,
 }
 
+// for testing
+impl Arbitrary for PublicKey {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
+        let ikm = any::<[u8; 32]>();
+        ikm.prop_map(|ikm| PublicKey {
+            pubkey: blst::min_pk::SecretKey::key_gen_v3(&ikm[..], b"aptos test")
+                .unwrap()
+                .sk_to_pk(),
+        })
+        .boxed()
+    }
+}
+
 impl Serialize for PublicKey {
     fn serialize<S>(&self, serializer: S) -> std::prelude::v1::Result<S::Ok, S::Error>
     where
-        S: serde::Serializer {
+        S: serde::Serializer,
+    {
         serializer.serialize_newtype_struct(
             "PublicKey",
             serde_bytes::Bytes::new(&self.pubkey.to_bytes().as_slice()),
@@ -95,7 +117,7 @@ impl PublicKey {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, CopyGetters, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, CopyGetters, Serialize, Arbitrary)]
 pub struct ValidatorConsensusInfo {
     #[getset(get_copy)]
     address: AccountAddress,
@@ -104,7 +126,7 @@ pub struct ValidatorConsensusInfo {
     voting_power: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)] // this derive is in the original code, but it's probably a bug, as Validator set comparisons should have set (not list) semantics
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Arbitrary)] // this derive is in the original code, but it's probably a bug, as Validator set comparisons should have set (not list) semantics
 pub struct ValidatorVerifier {
     /// A vector of each validator's on-chain account address to its pubkeys and voting power.
     validator_infos: Vec<ValidatorConsensusInfo>,
@@ -124,8 +146,7 @@ impl ValidatorVerifier {
     /// Returns the number of authors to be validated.
     pub fn len(&self) -> usize {
         self.validator_infos.len()
-    }    
-
+    }
 
     /// Ensure there are not more than the maximum expected voters (all possible signatures).
     fn check_num_of_voters(
@@ -143,7 +164,6 @@ impl ValidatorVerifier {
         Ok(())
     }
 
-
     /// Returns sum of voting power from Map of validator account addresses, validator consensus info
     fn s_voting_power(address_to_validator_info: &[ValidatorConsensusInfo]) -> u128 {
         address_to_validator_info.iter().fold(0, |sum, x| {
@@ -157,19 +177,19 @@ impl ValidatorVerifier {
         Self::s_voting_power(&self.validator_infos[..])
     }
 
-    
     pub fn quorum_voting_power(&self) -> u128 {
         if self.validator_infos.is_empty() {
-                0
-            } else {
-                self.total_voting_power() * 2 / 3 + 1
-            }
+            0
+        } else {
+            self.total_voting_power() * 2 / 3 + 1
         }
+    }
 
     /// Returns the voting power for this address.
     pub fn get_voting_power(&self, author: &AccountAddress) -> Option<u64> {
         // TODO : make this more efficient
-        let address_to_validator_index = self.validator_infos
+        let address_to_validator_index = self
+            .validator_infos
             .iter()
             .enumerate()
             .map(|(index, info)| (info.address, index))
@@ -272,7 +292,7 @@ impl ValidatorVerifier {
         // see aptos_crypto::unit_tests::cryptohasher
         let mut bytes = Self::prefixed_sha3(b"LedgerInfo").to_vec();
         bcs::serialize_into(&mut bytes, &message)
-             .map_err(|_| VerifyError::InvalidMultiSignature)?;
+            .map_err(|_| VerifyError::InvalidMultiSignature)?;
 
         multi_sig
             .verify(&bytes, &aggregated_key)
@@ -281,7 +301,7 @@ impl ValidatorVerifier {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, CopyGetters, Getters, Serialize)]
+#[derive(Debug, PartialEq, Eq, CopyGetters, Getters, Serialize, Arbitrary)]
 pub struct BlockInfo {
     /// The epoch to which the block belongs.
     #[getset(get_copy)]
@@ -307,7 +327,9 @@ pub struct BlockInfo {
 impl BlockInfo {
     /// The epoch after this block committed
     pub fn next_block_epoch(&self) -> u64 {
-        self.next_epoch_state().as_ref().map_or(self.epoch(), |e| e.epoch)
+        self.next_epoch_state()
+            .as_ref()
+            .map_or(self.epoch(), |e| e.epoch)
     }
 }
 
@@ -352,7 +374,7 @@ pub enum VerifyError {
 // NOTE:
 // use aptos_crypto_derive::{BCSCryptoHash, CryptoHasher};
 // #[derive(BCSCryptoHash, CryptoHasher)]
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Arbitrary)]
 pub struct LedgerInfo {
     commit_info: BlockInfo,
     /// Hash of consensus specific data that is opaque to all parts of the system other than
@@ -411,10 +433,25 @@ impl Signature {
     }
 }
 
+impl Arbitrary for Signature {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_args: Self::Parameters) -> Self::Strategy {
+        let ikm = any::<[u8; 32]>();
+        ikm.prop_map(|ikm| {
+            let sk = blst::min_pk::SecretKey::key_gen_v3(&ikm[..], b"aptos test").unwrap();
+            let sig = sk.sign(b"test msg", DST_BLS_SIG_IN_G2_WITH_POP, &[]);
+            Signature { sig }
+        })
+        .boxed()
+    }
+}
+
 // Every u8 is used as a bucket of 8 bits. Total max buckets = 65536 / 8 = 8192.
 const BUCKET_SIZE: usize = 8;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Arbitrary)]
 pub struct BitVec {
     inner: Vec<u8>,
 }
@@ -463,7 +500,7 @@ impl BitVec {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Getters)]
+#[derive(Debug, PartialEq, Eq, Getters, Arbitrary)]
 pub struct AggregateSignature {
     validator_bitmask: BitVec,
     #[getset(get)]
@@ -476,7 +513,7 @@ impl AggregateSignature {
     }
 }
 
-#[derive(Debug, Getters, PartialEq, Eq)]
+#[derive(Debug, Getters, PartialEq, Eq, Arbitrary)]
 pub struct LedgerInfoWithV0 {
     #[getset(get)]
     ledger_info: LedgerInfo,
@@ -486,15 +523,12 @@ pub struct LedgerInfoWithV0 {
 }
 
 impl LedgerInfoWithV0 {
-    pub fn verify_signatures(
-        &self,
-        validator: &ValidatorVerifier,
-    ) -> Result<(), VerifyError> {
+    pub fn verify_signatures(&self, validator: &ValidatorVerifier) -> Result<(), VerifyError> {
         validator.verify_multi_signatures(self.ledger_info(), &self.signatures)
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Arbitrary)]
 pub enum LedgerInfoWithSignatures {
     V0(LedgerInfoWithV0),
 }
@@ -537,7 +571,7 @@ impl Ledger2WaypointConverter {
     }
 }
 
-#[derive(Debug, CopyGetters, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, CopyGetters, PartialEq, Eq, Clone, Copy, Arbitrary)]
 pub struct Waypoint {
     /// The version of the reconfiguration transaction that is being approved by this waypoint.
     #[getset(get_copy)]
@@ -557,7 +591,7 @@ impl Waypoint {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Arbitrary)]
 pub enum TrustedState {
     /// The current trusted state is an epoch waypoint, which is a commitment to
     /// an epoch change ledger info. Most light clients will start here when
