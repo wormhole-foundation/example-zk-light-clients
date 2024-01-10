@@ -93,7 +93,7 @@ impl Serialize for PublicKey {
     {
         serializer.serialize_newtype_struct(
             "PublicKey",
-            serde_bytes::Bytes::new(&self.pubkey.to_bytes().as_slice()),
+            serde_bytes::Bytes::new(self.pubkey.to_bytes().as_slice()),
         )
     }
 }
