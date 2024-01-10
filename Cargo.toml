@@ -14,15 +14,20 @@ test-strategy = "0.3.1"
 thiserror = "1.0.56"
 bcs = { git = "https://github.com/aptos-labs/bcs.git", rev = "d31fab9d81748e2594be5cd5cdf845786a30562d" } 
 tiny-keccak = { version = "2.0.2", features = ["sha3"] }
-serde = "1.0.195"
-serde_bytes = "0.11.14"
+serde = "=1.0.152"
+serde_bytes = "0.11.6"
 
 # shallow cloning would sure help here https://github.com/rust-lang/cargo/issues/1171
-# aptos-core = { git = "https://github.com/aptos-labs/aptos-core.git", tag = "aptos-node-v1.9.1", optional = true }
-# aptos-types = { git = "https://github.com/aptos-labs/aptos-core.git", tag = "aptos-node-v1.9.1", optional = true }
+aptos-crypto = { git = "https://github.com/aptos-labs/aptos-core/", tag = "aptos-node-v1.9.1", optional = true }
+aptos-types = { git = "https://github.com/aptos-labs/aptos-core/", tag = "aptos-node-v1.9.1", optional = true }
 
 
 [dev-dependencies]
 
 [features]
-# aptos = ["dep:aptos-core", "dep:aptos-types"]
+aptos = ["dep:aptos-crypto", "dep:aptos-types"]
+
+[patch.crates-io]
+serde-reflection = { git = "https://github.com/aptos-labs/serde-reflection", rev = "73b6bbf748334b71ff6d7d09d06a29e3062ca075" }
+merlin = { git = "https://github.com/aptos-labs/merlin" }
+x25519-dalek = { git = "https://github.com/aptos-labs/x25519-dalek", branch = "zeroize_v1" }
