@@ -143,6 +143,10 @@ pub struct ValidatorVerifier {
 }
 
 impl ValidatorVerifier {
+    pub fn is_empty(&self) -> bool {
+        self.validator_infos.is_empty()
+    }
+
     /// Returns the number of authors to be validated.
     pub fn len(&self) -> usize {
         self.validator_infos.len()
