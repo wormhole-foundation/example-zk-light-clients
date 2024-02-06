@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
 //! structs reproduced identically with BCS derived ser/de
 //!
 use std::{collections::HashMap, ops::Deref};
@@ -270,14 +271,11 @@ impl ValidatorVerifier {
         }
         // Verify the quorum voting power of the authors
         self.check_voting_power(authors.iter(), true)?;
-        #[cfg(any(test, feature = "fuzzing"))]
-        {
-            if self.quorum_voting_power() == 0 {
-                // This should happen only in case of tests.
-                // TODO(skedia): Clean up the test behaviors to not rely on empty signature
-                // verification
-                return Ok(());
-            }
+        if self.quorum_voting_power() == 0 {
+            // This should happen only in case of tests.
+            // TODO(skedia): Clean up the test behaviors to not rely on empty signature
+            // verification
+            return Ok(());
         }
         // Verify empty multi signature
         let multi_sig = multi_signature
