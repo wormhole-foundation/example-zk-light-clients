@@ -17,4 +17,4 @@ jobs:
         source_repo: "https://x-access-token:${{ secrets.LURK_LAB_READ_TOKEN }}@github.com/lurk-lab/aptos-lc.git"
         source_branch: "main"
         destination_branch: "main"
-        github_token: ${{ secrets.LURK_LAB_READ_TOKEN }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
