@@ -49,6 +49,7 @@ impl BlockInfo {
             next_epoch_state,
         }
     }
+
     /// The epoch after this block committed
     pub fn next_block_epoch(&self) -> u64 {
         self.next_epoch_state()
