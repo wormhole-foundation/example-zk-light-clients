@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
-
 use crate::types::ledger_info::{LedgerInfo, LedgerInfoWithSignatures};
 use crate::types::validator::ValidatorVerifier;
 use anyhow::ensure;

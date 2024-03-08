@@ -64,7 +64,6 @@ impl HashValue {
     pub fn from_human_readable(hex: &str) -> Result<Self> {
         let hex = hex.strip_prefix("0x").unwrap_or(hex);
         let bytes = hex::decode(hex).unwrap();
-        dbg!(bytes.len());
         Ok(HashValue::new(bytes.try_into().unwrap()))
     }
 

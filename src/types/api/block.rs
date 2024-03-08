@@ -125,7 +125,6 @@ mod test {
         let res = reqwest::blocking::get("https://fullnode.mainnet.aptoslabs.com/v1/blocks/by_height/139691105?with_transactions=true").unwrap().bytes().unwrap();
         let block: Block = serde_json::from_slice(&res).unwrap();
 
-        let block_info: BlockInfo = block.try_into().unwrap();
-        dbg!(block_info);
+        let _block_info: BlockInfo = block.try_into().unwrap();
     }
 }

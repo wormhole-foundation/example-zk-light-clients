@@ -11,6 +11,12 @@ pub struct SparseMerkleLeafNode {
     value_hash: HashValue,
 }
 
+impl SparseMerkleLeafNode {
+    pub fn new(key: HashValue, value_hash: HashValue) -> Self {
+        Self { key, value_hash }
+    }
+}
+
 impl CryptoHash for SparseMerkleLeafNode {
     fn hash(&self) -> HashValue {
         HashValue::new(hash_data(
