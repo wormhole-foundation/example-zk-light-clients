@@ -2,11 +2,9 @@
 use crate::crypto::circuit::chunk_step::ChunkStep;
 use crate::crypto::circuit::{AptosCircuit, E1, S1, S2};
 use crate::crypto::hash::HashValue;
+use crate::crypto::supernova::ProvingSystem;
 use crate::merkle::node::SparseMerkleLeafNode;
 use anyhow::ensure;
-use arecibo::supernova::snark::CompressedSNARK;
-use arecibo::supernova::{NonUniformCircuit, PublicParams, RecursiveSNARK};
-use arecibo::traits::snark::default_ck_hint;
 use arecibo::traits::{Dual, Engine};
 use bellpepper::gadgets::multipack::bytes_to_bits;
 use ff::Field;
@@ -91,7 +89,6 @@ impl SparseMerkleProof {
             let mut sib_elems: Vec<<E1 as Engine>::Scalar> = From::from(sibling);
             siblings_hash_key_elems.append(&mut sib_elems);
         }
-        // TODO move the circuit instantiation, recursive snark intantiation/proving, compressed snark instantiation/proving somewhere else
 
         let z0_primary: Vec<<E1 as Engine>::Scalar> =
             [leaf_hash_elems.as_slice(), root_hash_elems.as_slice()]
@@ -104,66 +101,15 @@ impl SparseMerkleProof {
             <AptosCircuit<<E1 as Engine>::Scalar, ChunkStep<<E1 as Engine>::Scalar>, N>>::new(
                 &siblings_hash_key_elems,
             );
-        let circuit_primary = <AptosCircuit<
-            halo2curves::bn256::Fr,
-            ChunkStep<halo2curves::bn256::Fr>,
-            N,
-        > as NonUniformCircuit<E1>>::primary_circuit(
-            &chunk_circuit, 0
-        );
-        let circuit_secondary = <AptosCircuit<
-            <E1 as Engine>::Scalar,
-            ChunkStep<<E1 as Engine>::Scalar>,
-            N,
-        > as NonUniformCircuit<E1>>::secondary_circuit(
-            &chunk_circuit
-        );
 
-        let pp =
-            PublicParams::<E1>::setup(&chunk_circuit, &*default_ck_hint(), &*default_ck_hint());
+        let mut proving_system =
+            ProvingSystem::<E1, S1, S2, N>::new(chunk_circuit, z0_primary, z0_secondary);
 
-        let mut recursive_snark = RecursiveSNARK::<E1>::new(
-            &pp,
-            &chunk_circuit,
-            &circuit_primary,
-            &circuit_secondary,
-            &z0_primary,
-            &z0_secondary,
-        )
-        .unwrap();
+        proving_system.recursive_proving();
 
-        // Number of chunk iter + hash equality
-        for step in 0..siblings_hash_key_elems.len().div_ceil(N) + 1 {
-            // Last iteration hash equality, otherwise chunk iter
-            let circuit_primary = if step == siblings_hash_key_elems.len().div_ceil(N) {
-                <AptosCircuit<
-                    <E1 as Engine>::Scalar,
-                    ChunkStep<<E1 as Engine>::Scalar>,
-                    N,
-                > as NonUniformCircuit<E1>>::primary_circuit(
-                    &chunk_circuit, 1
-                )
-            } else {
-                chunk_circuit.get_iteration_circuit(step)
-            };
+        let compressed_snark = proving_system.compressed_proving();
 
-            let res = recursive_snark.prove_step(&pp, &circuit_primary, &circuit_secondary);
-            assert!(res.is_ok());
-
-            let res = recursive_snark.verify(&pp, &z0_primary, &z0_secondary);
-            assert!(res.is_ok());
-        }
-
-        let (prover_key, verifier_key) = CompressedSNARK::<_, S1, S2>::setup(&pp).unwrap();
-
-        let res = CompressedSNARK::<_, S1, S2>::prove(&pp, &prover_key, &recursive_snark);
-
-        assert!(res.is_ok());
-        let compressed_snark = res.unwrap();
-
-        // verify the compressed SNARK
-        let res = compressed_snark.verify(&pp, &verifier_key, &z0_primary, &z0_secondary);
-        assert!(res.is_ok());
+        proving_system.compressed_verify(&compressed_snark);
 
         Ok(())
     }

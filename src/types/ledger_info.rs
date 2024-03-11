@@ -19,6 +19,12 @@ pub struct LedgerInfo {
 }
 
 impl LedgerInfo {
+    pub fn new(commit_info: BlockInfo, consensus_data_hash: HashValue) -> Self {
+        Self {
+            commit_info,
+            consensus_data_hash,
+        }
+    }
     pub fn epoch(&self) -> u64 {
         self.commit_info.epoch()
     }

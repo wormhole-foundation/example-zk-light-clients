@@ -8,6 +8,7 @@ use bellpepper_chunk::IterationStep;
 use bellpepper_core::num::AllocatedNum;
 use bellpepper_core::{ConstraintSystem, SynthesisError};
 use ff::PrimeFieldBits;
+use getset::Getters;
 use halo2curves::bn256::Bn256;
 
 pub mod chunk_step;
@@ -26,12 +27,14 @@ pub type S1 = arecibo::spartan::batched::BatchedRelaxedR1CSSNARK<E1, EE1>;
 pub type S2 = arecibo::spartan::snark::RelaxedR1CSSNARK<E2, EE2>;
 
 /// Structure representing the set of sub-circuit to be proven by using Supernova.
+#[derive(Getters)]
+#[getset(get = "pub")]
 pub struct AptosCircuit<F: PrimeFieldBits, C: InnerIterationStepCircuit<F>, const N: usize> {
-    pub(crate) iteration_steps: Vec<IterationStep<F, C, N>>,
+    iteration_steps: Vec<IterationStep<F, C, N>>,
 }
 
 impl<F: PrimeFieldBits, C: InnerIterationStepCircuit<F>, const N: usize> AptosCircuit<F, C, N> {
-    pub(crate) fn new(inputs: &[F]) -> Self {
+    pub fn new(inputs: &[F]) -> Self {
         Self {
             // We expect EqualityCircuit to be called once the last `IterationStep` is done.
             iteration_steps: IterationStep::from_inputs(0, inputs, F::ONE),
@@ -42,7 +45,7 @@ impl<F: PrimeFieldBits, C: InnerIterationStepCircuit<F>, const N: usize> AptosCi
         self.iteration_steps[step].clone()
     }
 
-    pub(crate) fn get_iteration_circuit(&self, step: usize) -> ChunkCircuitSet<F, C, N> {
+    pub fn get_iteration_circuit(&self, step: usize) -> ChunkCircuitSet<F, C, N> {
         ChunkCircuitSet::IterationStep(IterationStepWrapper::new(self.get_iteration_step(step)))
     }
 }
