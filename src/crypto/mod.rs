@@ -2,3 +2,4 @@
 pub mod circuit;
 pub mod hash;
 pub mod sig;
+pub mod supernova;
