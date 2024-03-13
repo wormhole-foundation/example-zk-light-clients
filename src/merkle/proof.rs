@@ -123,58 +123,12 @@ mod test {
     use sha3::digest::Output;
     use sha3::Digest;
 
-    /*use proptest::prelude::*;
-    use proptest::proptest;*/
-
     pub fn hash<D: Digest>(data: &[u8]) -> Output<D> {
         let mut hasher = D::new();
         hasher.update(data);
 
         hasher.finalize()
     }
-
-    /*proptest! {
-            #![proptest_config(ProptestConfig::with_cases(5))]
-
-
-        #[test]
-        fn test_verify_proof(
-            leaf_node in any::<SparseMerkleLeafNode>(),
-            siblings in prop::collection::vec(any::<HashValue>(), 5..15),
-        ) {
-            let proof = SparseMerkleProof {
-                leaf: Some(leaf_node),
-                siblings: siblings.clone(),
-            };
-
-            let key = leaf_node.key();
-            let value_hash = leaf_node.value_hash();
-            let expected_root_hash = siblings
-                .iter()
-                .zip(key.iter_bits().take(siblings.len()))
-                .fold(leaf_node.value_hash(), |acc_hash, (sibling_hash, bit)| {
-                    if bit {
-                        HashValue::from_slice(hash::<
-                            <Sha3 as GadgetDigest<<E1 as Engine>::Scalar>>::OutOfCircuitHasher,
-                        >(
-                            &[sibling_hash.hash(), acc_hash.hash()].concat()
-                        ))
-                        .unwrap()
-                    } else {
-                        HashValue::from_slice(hash::<
-                            <Sha3 as GadgetDigest<<E1 as Engine>::Scalar>>::OutOfCircuitHasher,
-                        >(
-                            &[acc_hash.hash(), sibling_hash.hash()].concat()
-                        ))
-                        .unwrap()
-                    }
-                });
-
-            proof
-                .verify_by_hash::<3>(expected_root_hash, key, value_hash)
-                .unwrap()
-        }
-    }*/
 
     #[test]
     fn test_verify_proof_simple() {

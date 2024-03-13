@@ -21,10 +21,8 @@ pub type E1 = arecibo::provider::Bn256EngineKZG;
 pub type E2 = arecibo::provider::GrumpkinEngine;
 pub type EE1 = arecibo::provider::hyperkzg::EvaluationEngine<Bn256, E1>;
 pub type EE2 = arecibo::provider::ipa_pc::EvaluationEngine<E2>;
-
-pub type S1 = arecibo::spartan::batched::BatchedRelaxedR1CSSNARK<E1, EE1>;
-
-pub type S2 = arecibo::spartan::snark::RelaxedR1CSSNARK<E2, EE2>;
+pub type S1 = arecibo::spartan::batched_ppsnark::BatchedRelaxedR1CSSNARK<E1, EE1>;
+pub type S2 = arecibo::spartan::ppsnark::RelaxedR1CSSNARK<E2, EE2>;
 
 /// Structure representing the set of sub-circuit to be proven by using Supernova.
 #[derive(Getters)]

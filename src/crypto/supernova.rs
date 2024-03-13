@@ -2,9 +2,7 @@ use crate::crypto::circuit::chunk_step::ChunkStep;
 use crate::crypto::circuit::AptosCircuit;
 use arecibo::supernova::snark::{CompressedSNARK, ProverKey, VerifierKey};
 use arecibo::supernova::{NonUniformCircuit, PublicParams, RecursiveSNARK};
-use arecibo::traits::snark::{
-    default_ck_hint, BatchedRelaxedR1CSSNARKTrait, RelaxedR1CSSNARKTrait,
-};
+use arecibo::traits::snark::{BatchedRelaxedR1CSSNARKTrait, RelaxedR1CSSNARKTrait};
 use arecibo::traits::{CurveCycleEquipped, Dual, Engine};
 use getset::Getters;
 
@@ -12,7 +10,7 @@ use getset::Getters;
 #[getset(get = "pub")]
 pub struct ProvingSystem<
     E1: CurveCycleEquipped,
-    S1: BatchedRelaxedR1CSSNARKTrait<E1> + RelaxedR1CSSNARKTrait<E1>,
+    S1: BatchedRelaxedR1CSSNARKTrait<E1>,
     S2: RelaxedR1CSSNARKTrait<Dual<E1>>,
     const N: usize,
 > {
@@ -27,7 +25,7 @@ pub struct ProvingSystem<
 
 impl<
         E1: CurveCycleEquipped,
-        S1: BatchedRelaxedR1CSSNARKTrait<E1> + RelaxedR1CSSNARKTrait<E1>,
+        S1: BatchedRelaxedR1CSSNARKTrait<E1>,
         S2: RelaxedR1CSSNARKTrait<Dual<E1>>,
         const N: usize,
     > ProvingSystem<E1, S1, S2, N>
@@ -37,7 +35,7 @@ impl<
         z0_primary: Vec<<E1 as Engine>::Scalar>,
         z0_secondary: Vec<<Dual<E1> as Engine>::Scalar>,
     ) -> Self {
-        let pp = PublicParams::<E1>::setup(&circuit, &*default_ck_hint(), &*default_ck_hint());
+        let pp = PublicParams::<E1>::setup(&circuit, &*S1::ck_floor(), &*S2::ck_floor());
         let circuit_primary =
             <AptosCircuit<_, _, N> as NonUniformCircuit<E1>>::primary_circuit(&circuit, 0);
         let circuit_secondary =
