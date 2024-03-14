@@ -5,11 +5,11 @@ use crate::types::error::VerifyError;
 use crate::types::ledger_info::LedgerInfo;
 use crate::types::AccountAddress;
 use getset::CopyGetters;
-use serde::Serialize;
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use test_strategy::Arbitrary;
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, CopyGetters, Serialize, Arbitrary)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, CopyGetters, Serialize, Deserialize, Arbitrary)]
 pub struct ValidatorConsensusInfo {
     #[getset(get_copy)]
     address: AccountAddress,
@@ -35,6 +35,10 @@ pub struct ValidatorVerifier {
 }
 
 impl ValidatorVerifier {
+    pub fn new(validator_infos: Vec<ValidatorConsensusInfo>) -> Self {
+        Self { validator_infos }
+    }
+
     /// Returns the number of authors to be validated.
     pub fn len(&self) -> usize {
         self.validator_infos.len()
@@ -177,5 +181,24 @@ impl ValidatorVerifier {
             .verify(&bytes, &aggregated_key)
             .map_err(|_| VerifyError::InvalidMultiSignature)?;
         Ok(())
+    }
+}
+
+/// Reconstruct fields from the raw data upon deserialization.
+impl<'de> Deserialize<'de> for ValidatorVerifier {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename = "ValidatorVerifier")]
+        struct RawValidatorVerifier {
+            validator_infos: Vec<ValidatorConsensusInfo>,
+        }
+
+        let RawValidatorVerifier { validator_infos } =
+            RawValidatorVerifier::deserialize(deserializer)?;
+
+        Ok(ValidatorVerifier::new(validator_infos))
     }
 }

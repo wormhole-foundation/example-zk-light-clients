@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
+use crate::crypto::error::CryptoError;
 use anyhow::format_err;
 use blst::BLST_ERROR;
 use getset::Getters;
 use proptest::arbitrary::{any, Arbitrary};
 use proptest::prelude::BoxedStrategy;
 use proptest::strategy::Strategy;
-use serde::Serialize;
+use serde::de::Error;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use test_strategy::Arbitrary;
 
 // Every u8 is used as a bucket of 8 bits. Total max buckets = 65536 / 8 = 8192.
@@ -35,14 +37,43 @@ impl Arbitrary for PublicKey {
 }
 
 impl Serialize for PublicKey {
-    fn serialize<S>(&self, serializer: S) -> std::prelude::v1::Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer,
+        S: Serializer,
     {
         serializer.serialize_newtype_struct(
             "PublicKey",
             serde_bytes::Bytes::new(self.pubkey.to_bytes().as_slice()),
         )
+    }
+}
+
+impl<'de> Deserialize<'de> for PublicKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // In order to preserve the Serde data model and help analysis tools,
+        // make sure to wrap our value in a container with the same name
+        // as the original type.
+        #[derive(Deserialize, Debug)]
+        #[serde(rename = "PublicKey")]
+        struct Value<'a>(&'a [u8]);
+
+        let value = Value::deserialize(deserializer)?;
+        PublicKey::try_from(value.0)
+            .map_err(|s| <D::Error as Error>::custom(format!("{} with {}", s, "PublicKey")))
+    }
+}
+
+impl TryFrom<&[u8]> for PublicKey {
+    type Error = CryptoError;
+
+    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
+        Ok(Self {
+            pubkey: blst::min_pk::PublicKey::from_bytes(bytes)
+                .map_err(|_| Self::Error::PublicKeyDeserializationError)?,
+        })
     }
 }
 
@@ -88,8 +119,54 @@ impl Signature {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Arbitrary)]
+impl Serialize for Signature {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_newtype_struct(
+            "Signature",
+            serde_bytes::Bytes::new(self.sig.to_bytes().as_slice()),
+        )
+    }
+}
+
+impl<'de> Deserialize<'de> for Signature {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // In order to preserve the Serde data model and help analysis tools,
+        // make sure to wrap our value in a container with the same name
+        // as the original type.
+        #[derive(Deserialize, Debug)]
+        #[serde(rename = "Signature")]
+        struct Value<'a>(&'a [u8]);
+
+        let value = Value::deserialize(deserializer)?;
+        Signature::try_from(value.0)
+            .map_err(|s| <D::Error as Error>::custom(format!("{} with {}", s, "Signature")))
+    }
+}
+
+impl TryFrom<&[u8]> for Signature {
+    type Error = CryptoError;
+
+    /// Deserializes a Signature from a sequence of bytes.
+    ///
+    /// WARNING: Does NOT subgroup-check the signature! Instead, this will be done implicitly when
+    /// verifying the signature.
+    fn try_from(bytes: &[u8]) -> std::result::Result<Signature, Self::Error> {
+        Ok(Self {
+            sig: blst::min_pk::Signature::from_bytes(bytes)
+                .map_err(|_| Self::Error::SignatureDeserializationError)?,
+        })
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Arbitrary)]
 pub struct BitVec {
+    #[serde(with = "serde_bytes")]
     inner: Vec<u8>,
 }
 
@@ -137,6 +214,27 @@ impl BitVec {
     }
 }
 
+impl<'de> Deserialize<'de> for BitVec {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename = "BitVec")]
+        struct RawData {
+            #[serde(with = "serde_bytes")]
+            inner: Vec<u8>,
+        }
+        let v = RawData::deserialize(deserializer)?.inner;
+        // Every u8 is used as a bucket of 8 bits. Total max buckets = 65536 / 8 = 8192.
+        // https://github.com/aptos-labs/aptos-core/blob/main/crates/aptos-bitvec/src/lib.rs#L19
+        if v.len() > 8192 {
+            return Err(D::Error::custom(format!("BitVec too long: {}", v.len())));
+        }
+        Ok(BitVec { inner: v })
+    }
+}
+
 impl Arbitrary for Signature {
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
@@ -152,7 +250,7 @@ impl Arbitrary for Signature {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Getters, Arbitrary)]
+#[derive(Debug, PartialEq, Eq, Getters, Serialize, Deserialize, Arbitrary)]
 pub struct AggregateSignature {
     validator_bitmask: BitVec,
     #[getset(get = "pub")]

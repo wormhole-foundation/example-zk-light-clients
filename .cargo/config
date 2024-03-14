@@ -9,3 +9,7 @@ xclippy = [
     "-Wclippy::all",
     "-Wclippy::disallowed_methods",
 ]
+
+# This is necessary when building aptos-runtime: https://github.com/aptos-labs/aptos-core/pull/11889
+[build]
+rustflags = ["--cfg", "tokio_unstable"]
