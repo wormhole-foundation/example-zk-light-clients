@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
 use crate::crypto::hash::{hash_data, prefixed_sha3, CryptoHash, HashValue};
 use getset::CopyGetters;
+use serde::{Deserialize, Serialize};
 use test_strategy::Arbitrary;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, CopyGetters, Arbitrary)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize, CopyGetters, Arbitrary)]
 pub struct SparseMerkleLeafNode {
     #[getset(get_copy = "pub")]
     key: HashValue,

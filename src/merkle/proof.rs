@@ -9,8 +9,9 @@ use arecibo::traits::{Dual, Engine};
 use bellpepper::gadgets::multipack::bytes_to_bits;
 use ff::Field;
 use getset::Getters;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Eq, PartialEq, Getters)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Getters)]
 #[getset(get = "pub")]
 pub struct SparseMerkleProof {
     /// This proof can be used to authenticate whether a given leaf exists in the tree or not.

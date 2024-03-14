@@ -3,10 +3,12 @@ use crate::crypto::hash::HashValue;
 use crate::types::epoch_state::EpochState;
 use crate::types::{Round, Version};
 use getset::{CopyGetters, Getters};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use test_strategy::Arbitrary;
 
-#[derive(Default, Debug, PartialEq, Eq, CopyGetters, Getters, Serialize, Arbitrary)]
+#[derive(
+    Default, Debug, PartialEq, Eq, CopyGetters, Getters, Serialize, Deserialize, Arbitrary,
+)]
 pub struct BlockInfo {
     /// The epoch to which the block belongs.
     #[getset(get_copy = "pub")]

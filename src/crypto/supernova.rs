@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
 use crate::crypto::circuit::chunk_step::ChunkStep;
 use crate::crypto::circuit::AptosCircuit;
 use arecibo::supernova::snark::{CompressedSNARK, ProverKey, VerifierKey};
