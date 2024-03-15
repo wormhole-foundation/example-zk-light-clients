@@ -1,6 +1,10 @@
-# Aptos-LC
+<div align="center">
+  <img src="images/wh-zk-logo.png", height=100>
+</div>
 
-This is intended to be a library for building a Light client library for Aptos (despite the name)
+---
 
-Development occurs on the main branch so as to synchronize properly:
-https://github.com/wormhole-foundation/example-aptos-light-client/tree/main
+# Wormhole-ZK-Light-Clients
+
+A collection of ZK light client libraries for various blockchains.
+
