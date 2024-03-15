@@ -1,6 +1,16 @@
-# Aptos-LC
+<div align="center">
+  <img src="images/wh-zk-logo.png", height=100>
+</div>
 
-This is intended to be a library for building a Light client library for Aptos
+---
 
-# License 
-This project is Copyright (c) Yatima, Inc, 2024, and Licensed under the GPLv3 license or later, or the BUSL-1.1 license, at your option
+# Wormhole-ZK-Light-Clients
+
+A collection of ZK light client libraries for various blockchains.
+
+## License
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE-MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE-APACHE)
+
+This project is licensed under the [MIT License](LICENSE-MIT) and the [Apache License 2.0](LICENSE-APACHE).
