@@ -7,7 +7,7 @@ pub mod wrapper;
 
 #[test]
 pub fn test_serde_ledger_info_w_sig() {
-    let mut aptos_wrapper = AptosWrapper::new(4);
+    let mut aptos_wrapper = AptosWrapper::new(4, 1);
 
     aptos_wrapper.generate_traffic();
 
@@ -24,7 +24,7 @@ pub fn test_serde_ledger_info_w_sig() {
 
 #[test]
 pub fn test_serde_sparse_merkle_proof() {
-    let mut aptos_wrapper = AptosWrapper::new(4);
+    let mut aptos_wrapper = AptosWrapper::new(4, 1);
 
     aptos_wrapper.generate_traffic();
 
