@@ -4,6 +4,7 @@ use aptos_executor::block_executor::BlockExecutor;
 use aptos_executor_test_helpers::integration_test_impl::create_db_and_executor;
 use aptos_executor_test_helpers::{gen_block_id, gen_ledger_info_with_sigs};
 use aptos_executor_types::BlockExecutorTrait;
+use aptos_sdk::transaction_builder::aptos_stdlib::version_set_version;
 use aptos_sdk::transaction_builder::TransactionFactory;
 use aptos_sdk::types::{AccountKey, LocalAccount};
 use aptos_storage_interface::DbReaderWriter;
@@ -59,8 +60,7 @@ pub(crate) struct AptosWrapper {
     /// Validators of the chain
     validators: Vec<TestValidator>,
     /// Signer
-    // TODO we need to upgrade this to vector of signers for multiple ones
-    signer: ValidatorSigner,
+    signers: Vec<ValidatorSigner>,
     /// Transaction factory to generate transactions
     txn_factory: TransactionFactory,
     /// Database for the chain
@@ -79,19 +79,21 @@ pub(crate) struct AptosWrapper {
     current_version: u64,
     /// Current block
     current_block: usize,
+    /// Mock major version of the chain
+    major_version: u64,
 }
 
 #[allow(dead_code)]
 impl AptosWrapper {
     /// Create a new instance of the wrapper with n accounts. Will commit a first block to fund
     /// the accounts with some coins.
-    pub fn new(n: usize) -> Self {
+    pub fn new(nbr_local_accounts: usize, nbr_validators: usize) -> Self {
         // Create temporary location for the database
         let path = aptos_temppath::TempPath::new();
         path.create_as_dir().unwrap();
         // Create a test genesis and some validator for our test chain
         let (genesis, validators) =
-            aptos_vm_genesis::test_genesis_change_set_and_validators(Some(1));
+            aptos_vm_genesis::test_genesis_change_set_and_validators(Some(nbr_validators));
         // Define admin account
         let genesis_txn = Transaction::GenesisTransaction(WriteSetPayload::Direct(genesis));
         let core_resources_account: LocalAccount = LocalAccount::new(
@@ -104,12 +106,12 @@ impl AptosWrapper {
         let (_, db, executor, waypoint) = create_db_and_executor(path.path(), &genesis_txn, false);
 
         // Set current signer as the first validator
-        let signer = aptos_types::validator_signer::ValidatorSigner::new(
-            validators[0].data.owner_address,
-            validators[0].consensus_key.clone(),
-        );
+        let signers = validators
+            .iter()
+            .map(|v| ValidatorSigner::new(v.data.owner_address, v.consensus_key.clone()))
+            .collect();
         // Generate accounts
-        let accounts = generate_local_accounts(n);
+        let accounts = generate_local_accounts(nbr_local_accounts);
         // Transaction factory
         let txn_factory = TransactionFactory::new(ChainId::test());
 
@@ -117,7 +119,7 @@ impl AptosWrapper {
             core_resources_account,
             accounts,
             validators,
-            signer,
+            signers,
             txn_factory,
             db,
             executor,
@@ -127,6 +129,7 @@ impl AptosWrapper {
             current_round: 1,
             current_version: 1,
             current_block: 1,
+            major_version: 100,
         };
 
         aptos_wrapper.fund_accounts();
@@ -155,7 +158,6 @@ impl AptosWrapper {
     }
 
     /// Execute a new block and updates necessary properties
-    // TODO once we change epoch the round will reset so this logic will have to be adapted
     fn execute_block(&mut self, block_id: HashValue, block: Vec<SignatureVerifiedTransaction>) {
         let output = self
             .executor()
@@ -166,13 +168,10 @@ impl AptosWrapper {
             )
             .unwrap();
         // `LedgerInfoWithSignatures` for block
-        let li = gen_ledger_info_with_sigs(
-            *self.current_epoch(),
-            &output,
-            block_id,
-            &[self.signer().clone()],
-        );
+        let li =
+            gen_ledger_info_with_sigs(*self.current_epoch(), &output, block_id, self.signers());
         self.latest_li = Some(li.clone());
+
         // Save block to persistent storage
         self.executor().commit_blocks(vec![block_id], li).unwrap();
 
@@ -187,22 +186,40 @@ impl AptosWrapper {
 
         // Ratchet trusted state to latest version
         let trusted_state = match self.trusted_state().verify_and_ratchet(&state_proof) {
-            // TODO get latest LedgerInfoWithSignature for epoch change here
-            Ok(TrustedStateChange::Epoch { new_state, .. }) => new_state,
-            Ok(TrustedStateChange::Version { new_state, .. }) => new_state,
+            Ok(TrustedStateChange::Epoch { new_state, .. }) => {
+                match &new_state {
+                    TrustedState::EpochState { epoch_state, .. } => {
+                        if self.current_epoch != epoch_state.epoch {
+                            self.current_round = 1;
+                        }
+                        self.current_epoch = epoch_state.epoch;
+                    }
+                    _ => {
+                        panic!("should not happen")
+                    }
+                }
+
+                new_state
+            }
+            Ok(TrustedStateChange::Version { new_state, .. }) => {
+                self.current_round += 1;
+                new_state
+            }
+            Err(err) => {
+                dbg!(err);
+                panic!("ended with error")
+            }
             _ => {
                 panic!("unexpected state change")
             }
         };
+
         // Ensure ratcheting worked well
         let latest_li = state_proof.latest_ledger_info();
-
         let current_version = latest_li.version();
         assert_eq!(trusted_state.version(), current_version);
 
         self.trusted_state = trusted_state;
-        // TODO, round should be reset to 1 when a new epoch is comitted
-        self.current_round += 1;
         self.current_block += 1;
         self.current_version = current_version;
     }
@@ -214,7 +231,7 @@ impl AptosWrapper {
             block_id,
             self.current_epoch,
             self.current_round,
-            self.signer.author(),
+            self.signers[0].author(),
             vec![0],
             vec![],
             self.current_block as u64,
@@ -240,6 +257,18 @@ impl AptosWrapper {
                 .sign_with_transaction_builder(self.txn_factory().transfer(receiver.address(), 10));
             block_txs.push(UserTransaction(transfer_tx));
         }
+        self.execute_block(block_id, block(block_txs));
+    }
+
+    pub fn commit_new_epoch(&mut self) {
+        let (block_id, block_meta) = self.gen_block_id_and_metadata();
+        let mut block_txs = vec![block_meta];
+        let new_version = *self.major_version() + 100;
+        let reconfig = self.core_resources_account().sign_with_transaction_builder(
+            self.txn_factory().payload(version_set_version(new_version)),
+        );
+        block_txs.push(UserTransaction(reconfig));
+        self.major_version = new_version;
         self.execute_block(block_id, block(block_txs));
     }
 
@@ -308,7 +337,40 @@ fn generate_local_accounts(n: usize) -> Vec<LocalAccount> {
 
 #[test]
 fn test_aptos_wrapper() {
-    let mut aptos_wrapper = AptosWrapper::new(4);
+    let mut aptos_wrapper = AptosWrapper::new(4, 1);
+
+    // Get the state proof for the current version
+    let state_proof_assets = aptos_wrapper.get_latest_proof_account(0).unwrap();
+    state_proof_assets
+        .state_proof()
+        .verify(
+            state_proof_assets.root_hash().clone(),
+            state_proof_assets.key().clone(),
+            state_proof_assets.state_value.as_ref(),
+        )
+        .unwrap();
+
+    aptos_wrapper.generate_traffic();
+    assert_eq!(aptos_wrapper.trusted_state().version(), 22);
+
+    assert_eq!(*aptos_wrapper.current_epoch(), 1);
+    assert_eq!(*aptos_wrapper.major_version(), 100);
+    assert_eq!(*aptos_wrapper.current_round(), 2);
+
+    aptos_wrapper.commit_new_epoch();
+
+    assert_eq!(*aptos_wrapper.major_version(), 200);
+    assert_eq!(*aptos_wrapper.current_epoch(), 2);
+    assert_eq!(*aptos_wrapper.current_round(), 1);
+    assert_eq!(aptos_wrapper.trusted_state().version(), 24);
+
+    aptos_wrapper.generate_traffic();
+    assert_eq!(*aptos_wrapper.current_version(), 36)
+}
+
+#[test]
+fn test_multiple_signers() {
+    let mut aptos_wrapper = AptosWrapper::new(4, 15);
 
     // Get the state proof for the current version
     let state_proof_assets = aptos_wrapper.get_latest_proof_account(0).unwrap();
