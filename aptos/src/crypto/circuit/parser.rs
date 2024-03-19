@@ -1,7 +1,7 @@
+use bellpepper_core::{ConstraintSystem, SynthesisError};
 // SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
 use bellpepper_core::num::AllocatedNum;
-use bellpepper_core::{ConstraintSystem, SynthesisError};
-use ff::{PrimeFieldBits};
+use ff::PrimeFieldBits;
 
 fn bits_to_u64(bits: &[u8]) -> u64 {
     let mut value: u64 = 0;
@@ -66,10 +66,12 @@ pub fn extract_vec<F: PrimeFieldBits, CS: ConstraintSystem<F>>(
 #[cfg(test)]
 mod test {
     use arecibo::traits::Engine;
-    use super::*;
-    use crate::crypto::circuit::E1;
     use bellpepper_core::test_cs::TestConstraintSystem;
     use serde::{Deserialize, Serialize};
+
+    use crate::crypto::circuit::E1;
+
+    use super::*;
 
     #[test]
     fn test_extract_mock_data() {
@@ -218,13 +220,22 @@ mod test {
             .get_latest_li_bytes()
             .unwrap()
             .iter()
-            .enumerate().map(|(i,b)| AllocatedNum::alloc(&mut cs.namespace(|| format!("ledger_info_byte {i}")), || Ok(<E1 as Engine>::Scalar::from(*b as u64))).unwrap()).collect::<Vec<_>>();
-
-        let ledger_info_bytes_alloc = bcs::to_bytes(&aptos_wrapper.get_latest_li().unwrap().ledger_info())
-            .unwrap()
-            .iter()
-            .map(|b| <E1 as Engine>::Scalar::from(*b as u64))
+            .enumerate()
+            .map(|(i, b)| {
+                AllocatedNum::alloc(
+                    &mut cs.namespace(|| format!("ledger_info_byte {i}")),
+                    || Ok(<E1 as Engine>::Scalar::from(*b as u64)),
+                )
+                .unwrap()
+            })
             .collect::<Vec<_>>();
+
+        let ledger_info_bytes_alloc =
+            bcs::to_bytes(&aptos_wrapper.get_latest_li().unwrap().ledger_info())
+                .unwrap()
+                .iter()
+                .map(|b| <E1 as Engine>::Scalar::from(*b as u64))
+                .collect::<Vec<_>>();
 
         let ledger_info_len: u64 = 8 // epoch
             + 8 // round
@@ -241,12 +252,16 @@ mod test {
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let offset_ledger_info_alloc = AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_offset"), || {
-            Ok(<E1 as Engine>::Scalar::from(offset_ledger_info))
-        }).unwrap();
-        let ledger_info_len_alloc = AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_len"), || {
-            Ok(<E1 as Engine>::Scalar::from(ledger_info_len))
-        }).unwrap();
+        let offset_ledger_info_alloc =
+            AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_offset"), || {
+                Ok(<E1 as Engine>::Scalar::from(offset_ledger_info))
+            })
+            .unwrap();
+        let ledger_info_len_alloc =
+            AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_len"), || {
+                Ok(<E1 as Engine>::Scalar::from(ledger_info_len))
+            })
+            .unwrap();
 
         let ledger_info_bytes_payload = extract_vec(
             &mut cs.namespace(|| "extract_ledger_info"),
@@ -254,11 +269,17 @@ mod test {
             offset_ledger_info_alloc,
             ledger_info_len_alloc,
         )
-            .unwrap();
+        .unwrap();
 
-        assert_eq!(ledger_info_bytes_payload.len(), ledger_info_bytes_alloc.len());
+        assert_eq!(
+            ledger_info_bytes_payload.len(),
+            ledger_info_bytes_alloc.len()
+        );
         for (i, ledger_info_byte) in ledger_info_bytes_alloc.iter().enumerate() {
-            assert_eq!(&ledger_info_bytes_payload[i].get_value().unwrap(), ledger_info_byte)
+            assert_eq!(
+                &ledger_info_bytes_payload[i].get_value().unwrap(),
+                ledger_info_byte
+            )
         }
 
         assert!(cs.is_satisfied());
@@ -266,12 +287,16 @@ mod test {
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let offset_signature_alloc = AllocatedNum::alloc(&mut cs.namespace(|| "signature_offset"), || {
-            Ok(<E1 as Engine>::Scalar::from(offset_signature))
-        }).unwrap();
-        let signature_len_alloc = AllocatedNum::alloc(&mut cs.namespace(|| "signature_len"), || {
-            Ok(<E1 as Engine>::Scalar::from(signature_len))
-        }).unwrap();
+        let offset_signature_alloc =
+            AllocatedNum::alloc(&mut cs.namespace(|| "signature_offset"), || {
+                Ok(<E1 as Engine>::Scalar::from(offset_signature))
+            })
+            .unwrap();
+        let signature_len_alloc =
+            AllocatedNum::alloc(&mut cs.namespace(|| "signature_len"), || {
+                Ok(<E1 as Engine>::Scalar::from(signature_len))
+            })
+            .unwrap();
 
         let aggregated_sig_bytes_payload = extract_vec(
             &mut cs.namespace(|| "extract_aggregated_sig"),
@@ -279,17 +304,31 @@ mod test {
             offset_signature_alloc,
             signature_len_alloc,
         )
-            .unwrap();
+        .unwrap();
 
-        assert_eq!(aggregated_sig_bytes_payload.len() + ledger_info_bytes_payload.len() + 1usize, intern_li_alloc.len());
+        assert_eq!(
+            aggregated_sig_bytes_payload.len() + ledger_info_bytes_payload.len() + 1usize,
+            intern_li_alloc.len()
+        );
 
         /*******************************************
          * Over testing to ensure proper parsing
          *******************************************/
-        let reconstructed_bytes = vec![vec![AllocatedNum::alloc(&mut cs.namespace(|| "byte_0"), || Ok(<E1 as Engine>::Scalar::from(0))).unwrap()], ledger_info_bytes_payload, aggregated_sig_bytes_payload].concat();
+        let reconstructed_bytes = vec![
+            vec![AllocatedNum::alloc(&mut cs.namespace(|| "byte_0"), || {
+                Ok(<E1 as Engine>::Scalar::from(0))
+            })
+            .unwrap()],
+            ledger_info_bytes_payload,
+            aggregated_sig_bytes_payload,
+        ]
+        .concat();
 
         for (i, byte) in intern_li_alloc.iter().enumerate() {
-            assert_eq!(byte.get_value().unwrap(), reconstructed_bytes[i].get_value().unwrap())
+            assert_eq!(
+                byte.get_value().unwrap(),
+                reconstructed_bytes[i].get_value().unwrap()
+            )
         }
     }
 
@@ -311,14 +350,22 @@ mod test {
             .get_latest_li_bytes()
             .unwrap()
             .iter()
-            .enumerate().map(|(i,b)| AllocatedNum::alloc(&mut cs.namespace(|| format!("ledger_info_byte {i}")), || Ok(<E1 as Engine>::Scalar::from(*b as u64))).unwrap()).collect::<Vec<_>>();
-
-        let ledger_info_bytes_alloc = bcs::to_bytes(&aptos_wrapper.get_latest_li().unwrap().ledger_info())
-            .unwrap()
-            .iter()
-            .map(|b| <E1 as Engine>::Scalar::from(*b as u64))
+            .enumerate()
+            .map(|(i, b)| {
+                AllocatedNum::alloc(
+                    &mut cs.namespace(|| format!("ledger_info_byte {i}")),
+                    || Ok(<E1 as Engine>::Scalar::from(*b as u64)),
+                )
+                .unwrap()
+            })
             .collect::<Vec<_>>();
 
+        let ledger_info_bytes_alloc =
+            bcs::to_bytes(&aptos_wrapper.get_latest_li().unwrap().ledger_info())
+                .unwrap()
+                .iter()
+                .map(|b| <E1 as Engine>::Scalar::from(*b as u64))
+                .collect::<Vec<_>>();
 
         let validators_list_len = 1 + NBR_VALIDATORS as u64 * (32 + 49 + 8); // vec size + nbr_validators * (account address + pub key + voting power)
         let offset_validator_list = 8 // epoch
@@ -329,7 +376,7 @@ mod test {
             + 8 // timestamp
             + 1 // Some
             + 8 // epoch
-            + 1 ; // next byte
+            + 1; // next byte
 
         let ledger_info_len: u64 = 8 // epoch
             + 8 // round
@@ -345,34 +392,51 @@ mod test {
         let signature_len = intern_li_alloc.len() as u64 - offset_signature;
         let offset_ledger_info = 1; // not taking the variant byte
 
-
         /*******************************************
          * Extract validator list from the data
          *******************************************/
-        let offset_validator_list_alloc = AllocatedNum::alloc(&mut cs.namespace(|| "validator_list_offset"), || {
-            Ok(<E1 as Engine>::Scalar::from(offset_validator_list)) }).unwrap();
-        let validator_list_len_alloc = AllocatedNum::alloc(&mut cs.namespace(|| "validator_list_len"), || { Ok(<E1 as Engine>::Scalar::from(validators_list_len)) }).unwrap();
+        let offset_validator_list_alloc =
+            AllocatedNum::alloc(&mut cs.namespace(|| "validator_list_offset"), || {
+                Ok(<E1 as Engine>::Scalar::from(offset_validator_list))
+            })
+            .unwrap();
+        let validator_list_len_alloc =
+            AllocatedNum::alloc(&mut cs.namespace(|| "validator_list_len"), || {
+                Ok(<E1 as Engine>::Scalar::from(validators_list_len))
+            })
+            .unwrap();
 
         let validator_list_bytes_payload = extract_vec(
             &mut cs.namespace(|| "extract_validator_list"),
             &intern_li_alloc,
             offset_validator_list_alloc,
             validator_list_len_alloc,
-        ).unwrap();
+        )
+        .unwrap();
 
-        for (validator_list_byte, i) in validator_list_bytes_payload.iter().zip(offset_validator_list as usize..offset_validator_list as usize + validators_list_len as usize) {
-            assert_eq!(validator_list_byte.get_value().unwrap(), intern_li_alloc[i].get_value().unwrap())
+        for (validator_list_byte, i) in validator_list_bytes_payload.iter().zip(
+            offset_validator_list as usize
+                ..offset_validator_list as usize + validators_list_len as usize,
+        ) {
+            assert_eq!(
+                validator_list_byte.get_value().unwrap(),
+                intern_li_alloc[i].get_value().unwrap()
+            )
         }
 
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let offset_ledger_info_alloc = AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_offset"), || {
-            Ok(<E1 as Engine>::Scalar::from(offset_ledger_info))
-        }).unwrap();
-        let ledger_info_len_alloc = AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_len"), || {
-            Ok(<E1 as Engine>::Scalar::from(ledger_info_len))
-        }).unwrap();
+        let offset_ledger_info_alloc =
+            AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_offset"), || {
+                Ok(<E1 as Engine>::Scalar::from(offset_ledger_info))
+            })
+            .unwrap();
+        let ledger_info_len_alloc =
+            AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_len"), || {
+                Ok(<E1 as Engine>::Scalar::from(ledger_info_len))
+            })
+            .unwrap();
 
         let ledger_info_bytes_payload = extract_vec(
             &mut cs.namespace(|| "extract_ledger_info"),
@@ -380,11 +444,17 @@ mod test {
             offset_ledger_info_alloc,
             ledger_info_len_alloc,
         )
-            .unwrap();
+        .unwrap();
 
-        assert_eq!(ledger_info_bytes_payload.len(), ledger_info_bytes_alloc.len());
+        assert_eq!(
+            ledger_info_bytes_payload.len(),
+            ledger_info_bytes_alloc.len()
+        );
         for (i, ledger_info_byte) in ledger_info_bytes_alloc.iter().enumerate() {
-            assert_eq!(&ledger_info_bytes_payload[i].get_value().unwrap(), ledger_info_byte)
+            assert_eq!(
+                &ledger_info_bytes_payload[i].get_value().unwrap(),
+                ledger_info_byte
+            )
         }
 
         assert!(cs.is_satisfied());
@@ -392,12 +462,16 @@ mod test {
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let offset_signature_alloc = AllocatedNum::alloc(&mut cs.namespace(|| "signature_offset"), || {
-            Ok(<E1 as Engine>::Scalar::from(offset_signature))
-        }).unwrap();
-        let signature_len_alloc = AllocatedNum::alloc(&mut cs.namespace(|| "signature_len"), || {
-            Ok(<E1 as Engine>::Scalar::from(signature_len))
-        }).unwrap();
+        let offset_signature_alloc =
+            AllocatedNum::alloc(&mut cs.namespace(|| "signature_offset"), || {
+                Ok(<E1 as Engine>::Scalar::from(offset_signature))
+            })
+            .unwrap();
+        let signature_len_alloc =
+            AllocatedNum::alloc(&mut cs.namespace(|| "signature_len"), || {
+                Ok(<E1 as Engine>::Scalar::from(signature_len))
+            })
+            .unwrap();
 
         let aggregated_sig_bytes_payload = extract_vec(
             &mut cs.namespace(|| "extract_aggregated_sig"),
@@ -405,17 +479,31 @@ mod test {
             offset_signature_alloc,
             signature_len_alloc,
         )
-            .unwrap();
+        .unwrap();
 
-        assert_eq!(aggregated_sig_bytes_payload.len() + ledger_info_bytes_payload.len() + 1usize, intern_li_alloc.len());
+        assert_eq!(
+            aggregated_sig_bytes_payload.len() + ledger_info_bytes_payload.len() + 1usize,
+            intern_li_alloc.len()
+        );
 
         /*******************************************
          * Over testing to ensure proper parsing
          *******************************************/
-        let reconstructed_bytes = vec![vec![AllocatedNum::alloc(&mut cs.namespace(|| "byte_0"), || Ok(<E1 as Engine>::Scalar::from(0))).unwrap()], ledger_info_bytes_payload, aggregated_sig_bytes_payload].concat();
+        let reconstructed_bytes = vec![
+            vec![AllocatedNum::alloc(&mut cs.namespace(|| "byte_0"), || {
+                Ok(<E1 as Engine>::Scalar::from(0))
+            })
+            .unwrap()],
+            ledger_info_bytes_payload,
+            aggregated_sig_bytes_payload,
+        ]
+        .concat();
 
         for (i, byte) in intern_li_alloc.iter().enumerate() {
-            assert_eq!(byte.get_value().unwrap(), reconstructed_bytes[i].get_value().unwrap())
+            assert_eq!(
+                byte.get_value().unwrap(),
+                reconstructed_bytes[i].get_value().unwrap()
+            )
         }
     }
 }
