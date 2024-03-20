@@ -13,52 +13,19 @@ fn bits_to_u64(bits: &[u8]) -> u64 {
     value
 }
 
-pub fn extract_vec<F: PrimeFieldBits, CS: ConstraintSystem<F>>(
-    cs: &mut CS,
+pub fn extract_vec<
+    F: PrimeFieldBits,
+    CS: ConstraintSystem<F>,
+    const OFFSET: usize,
+    const LENGTH: usize,
+>(
+    _cs: &mut CS,
     slice: &[AllocatedNum<F>],
-    offset: AllocatedNum<F>,
-    length: AllocatedNum<F>,
 ) -> Result<Vec<AllocatedNum<F>>, SynthesisError> {
-    let offset_value = bits_to_u64(
-        &offset
-            .to_bits_le_strict(cs.namespace(|| "offset_to_bits"))?
-            .iter()
-            .map(|b| if b.get_value().unwrap_or(false) { 1 } else { 0 })
-            .collect::<Vec<_>>(),
-    );
-    let length_value = bits_to_u64(
-        &length
-            .to_bits_le_strict(cs.namespace(|| "length_to_bits"))?
-            .iter()
-            .map(|b| if b.get_value().unwrap_or(false) { 1 } else { 0 })
-            .collect::<Vec<_>>(),
-    );
-
-    let mut nbr_elements = AllocatedNum::alloc(cs.namespace(|| "zero"), || Ok(F::ZERO))?;
-    let alloc_one = AllocatedNum::alloc(cs.namespace(|| "one"), || Ok(F::ONE))?;
-    let mut bytes_payload = (0..length_value)
-        .map(|i| {
-            AllocatedNum::alloc(&mut cs.namespace(|| format!("byte {i} init")), || {
-                Ok(F::ZERO)
-            })
-            .unwrap()
-        })
-        .collect::<Vec<_>>();
-
-    for (payload_idx, slice_idx) in (offset_value..offset_value + length_value).enumerate() {
-        bytes_payload[payload_idx] = slice[slice_idx as usize].clone();
-        nbr_elements = nbr_elements.add(
-            &mut cs.namespace(|| format!("bytes_pointer_increment {payload_idx}")),
-            &alloc_one,
-        )?;
+    let mut bytes_payload = vec![];
+    for i in OFFSET..OFFSET + LENGTH {
+        bytes_payload.push(slice[i].clone());
     }
-
-    cs.enforce(
-        || "nbr_elements equal to length",
-        |lc| lc + nbr_elements.get_variable(),
-        |lc| lc + CS::one(),
-        |lc| lc + length.get_variable(),
-    );
 
     Ok(bytes_payload)
 }
@@ -125,22 +92,10 @@ mod test {
          * Extract the string from the data
          *******************************************/
         // Offset is 1 as 0 is its length
-        let string_offset = AllocatedNum::alloc(&mut cs.namespace(|| "string_offset"), || {
-            Ok(<E1 as Engine>::Scalar::from(1))
-        })
-        .unwrap();
-
         // Length 5
-        let string_length = AllocatedNum::alloc(&mut cs.namespace(|| "string_length"), || {
-            Ok(<E1 as Engine>::Scalar::from(5))
-        })
-        .unwrap();
-
-        let alloc_bytes = extract_vec(
+        let alloc_bytes = extract_vec::<_, _, 1, 5>(
             &mut cs.namespace(|| "extract_string"),
             &data_bytes_allocated,
-            string_offset,
-            string_length,
         )
         .unwrap();
 
@@ -152,21 +107,10 @@ mod test {
          * Extract the number from the data
          *******************************************/
         // Offset is str.len() + 1
-        let number_offset = AllocatedNum::alloc(&mut cs.namespace(|| "number_offset"), || {
-            Ok(<E1 as Engine>::Scalar::from(6))
-        })
-        .unwrap();
         // Length 8 because u64
-        let number_length = AllocatedNum::alloc(&mut cs.namespace(|| "number_length"), || {
-            Ok(<E1 as Engine>::Scalar::from(8))
-        })
-        .unwrap();
-
-        let alloc_bytes = extract_vec(
+        let alloc_bytes = extract_vec::<_, _, 6, 8>(
             &mut cs.namespace(|| "extract_number"),
             &data_bytes_allocated,
-            number_offset,
-            number_length,
         )
         .unwrap();
 
@@ -179,23 +123,10 @@ mod test {
          * Extract the vector from the data
          *******************************************/
         // Offset is str.len() + 1 + number.len() + 1 (size of vec)
-        let vec_offset = AllocatedNum::alloc(&mut cs.namespace(|| "vec_offset"), || {
-            Ok(<E1 as Engine>::Scalar::from(15))
-        })
-        .unwrap();
         // Length nbr_elements * 8
-        let vec_length = AllocatedNum::alloc(&mut cs.namespace(|| "vec_length"), || {
-            Ok(<E1 as Engine>::Scalar::from(5 * 8))
-        })
-        .unwrap();
-
-        let alloc_bytes = extract_vec(
-            &mut cs.namespace(|| "extract_vec"),
-            &data_bytes_allocated,
-            vec_offset,
-            vec_length,
-        )
-        .unwrap();
+        let alloc_bytes =
+            extract_vec::<_, _, 15, 40>(&mut cs.namespace(|| "extract_vec"), &data_bytes_allocated)
+                .unwrap();
 
         for (i, alloc_byte) in alloc_bytes.iter().enumerate() {
             // We jump the size value
@@ -210,7 +141,8 @@ mod test {
     fn test_extract_with_no_new_epoch() {
         use crate::unit_tests::aptos::wrapper::AptosWrapper;
 
-        let mut aptos_wrapper = AptosWrapper::new(4, 1);
+        const NBR_VALIDATORS: usize = 1;
+        let mut aptos_wrapper = AptosWrapper::new(4, NBR_VALIDATORS);
 
         aptos_wrapper.generate_traffic();
 
@@ -237,7 +169,7 @@ mod test {
                 .map(|b| <E1 as Engine>::Scalar::from(*b as u64))
                 .collect::<Vec<_>>();
 
-        let ledger_info_len: u64 = 8 // epoch
+        const LEDGER_INFO_LEN: usize = 8 // epoch
             + 8 // round
             + 32 // id
             + 32 // executed state id
@@ -245,29 +177,16 @@ mod test {
             + 8 // timestamp
             + 1 // None variant for new epoch state
             + 32; // consensus data hash
-        let offset_signature = ledger_info_len + 1; // next byte
-        let signature_len = intern_li_alloc.len() as u64 - offset_signature;
-        let offset_ledger_info = 1; // not taking the variant byte
+        const OFFSET_SIGNATURE: usize = LEDGER_INFO_LEN + 1; // next byte
+        const SIGNATURE_LEN: usize = 1 + (NBR_VALIDATORS + 7) / 8 + 1 + 1 + 96; // signature_len + (NBR_VALIDATORS) + 7 / 8 + some_sig + sig_len + sig_nbr_bytes
+        const OFFSET_LEDGER_INFO: usize = 1; // not taking the variant byte
 
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let offset_ledger_info_alloc =
-            AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_offset"), || {
-                Ok(<E1 as Engine>::Scalar::from(offset_ledger_info))
-            })
-            .unwrap();
-        let ledger_info_len_alloc =
-            AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_len"), || {
-                Ok(<E1 as Engine>::Scalar::from(ledger_info_len))
-            })
-            .unwrap();
-
-        let ledger_info_bytes_payload = extract_vec(
+        let ledger_info_bytes_payload = extract_vec::<_, _, OFFSET_LEDGER_INFO, LEDGER_INFO_LEN>(
             &mut cs.namespace(|| "extract_ledger_info"),
             &intern_li_alloc,
-            offset_ledger_info_alloc,
-            ledger_info_len_alloc,
         )
         .unwrap();
 
@@ -287,22 +206,9 @@ mod test {
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let offset_signature_alloc =
-            AllocatedNum::alloc(&mut cs.namespace(|| "signature_offset"), || {
-                Ok(<E1 as Engine>::Scalar::from(offset_signature))
-            })
-            .unwrap();
-        let signature_len_alloc =
-            AllocatedNum::alloc(&mut cs.namespace(|| "signature_len"), || {
-                Ok(<E1 as Engine>::Scalar::from(signature_len))
-            })
-            .unwrap();
-
-        let aggregated_sig_bytes_payload = extract_vec(
+        let aggregated_sig_bytes_payload = extract_vec::<_, _, OFFSET_SIGNATURE, SIGNATURE_LEN>(
             &mut cs.namespace(|| "extract_aggregated_sig"),
             &intern_li_alloc,
-            offset_signature_alloc,
-            signature_len_alloc,
         )
         .unwrap();
 
@@ -367,8 +273,8 @@ mod test {
                 .map(|b| <E1 as Engine>::Scalar::from(*b as u64))
                 .collect::<Vec<_>>();
 
-        let validators_list_len = 1 + NBR_VALIDATORS as u64 * (32 + 49 + 8); // vec size + nbr_validators * (account address + pub key + voting power)
-        let offset_validator_list = 8 // epoch
+        const VALIDATORS_LIST_LEN: usize = 1 + NBR_VALIDATORS * (32 + 49 + 8); // vec size + nbr_validators * (account address + pub key + voting power)
+        const OFFSET_VALIDATOR_LIST: usize = 8 // epoch
             + 8 // round
             + 32 // id
             + 32 // executed state id
@@ -378,7 +284,7 @@ mod test {
             + 8 // epoch
             + 1; // next byte
 
-        let ledger_info_len: u64 = 8 // epoch
+        const LEDGER_INFO_LEN: usize = 8 // epoch
             + 8 // round
             + 32 // id
             + 32 // executed state id
@@ -386,38 +292,26 @@ mod test {
             + 8 // timestamp
             + 1 // Some
             + 8 // epoch
-            + validators_list_len
+            + VALIDATORS_LIST_LEN
             + 32; // consensus data hash
-        let offset_signature = ledger_info_len + 1; // next byte
-        let signature_len = intern_li_alloc.len() as u64 - offset_signature;
-        let offset_ledger_info = 1; // not taking the variant byte
+        const OFFSET_SIGNATURE: usize = LEDGER_INFO_LEN + 1; // next byte
+        const SIGNATURE_LEN: usize = 1 + (NBR_VALIDATORS + 7) / 8 + 1 + 1 + 96;
+        const OFFSET_LEDGER_INFO: usize = 1; // not taking the variant byte
 
         /*******************************************
          * Extract validator list from the data
          *******************************************/
-        let offset_validator_list_alloc =
-            AllocatedNum::alloc(&mut cs.namespace(|| "validator_list_offset"), || {
-                Ok(<E1 as Engine>::Scalar::from(offset_validator_list))
-            })
-            .unwrap();
-        let validator_list_len_alloc =
-            AllocatedNum::alloc(&mut cs.namespace(|| "validator_list_len"), || {
-                Ok(<E1 as Engine>::Scalar::from(validators_list_len))
-            })
+        let validator_list_bytes_payload =
+            extract_vec::<_, _, OFFSET_VALIDATOR_LIST, VALIDATORS_LIST_LEN>(
+                &mut cs.namespace(|| "extract_validator_list"),
+                &intern_li_alloc,
+            )
             .unwrap();
 
-        let validator_list_bytes_payload = extract_vec(
-            &mut cs.namespace(|| "extract_validator_list"),
-            &intern_li_alloc,
-            offset_validator_list_alloc,
-            validator_list_len_alloc,
-        )
-        .unwrap();
-
-        for (validator_list_byte, i) in validator_list_bytes_payload.iter().zip(
-            offset_validator_list as usize
-                ..offset_validator_list as usize + validators_list_len as usize,
-        ) {
+        for (validator_list_byte, i) in validator_list_bytes_payload
+            .iter()
+            .zip(OFFSET_VALIDATOR_LIST..OFFSET_VALIDATOR_LIST + VALIDATORS_LIST_LEN)
+        {
             assert_eq!(
                 validator_list_byte.get_value().unwrap(),
                 intern_li_alloc[i].get_value().unwrap()
@@ -427,22 +321,9 @@ mod test {
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let offset_ledger_info_alloc =
-            AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_offset"), || {
-                Ok(<E1 as Engine>::Scalar::from(offset_ledger_info))
-            })
-            .unwrap();
-        let ledger_info_len_alloc =
-            AllocatedNum::alloc(&mut cs.namespace(|| "ledger_info_len"), || {
-                Ok(<E1 as Engine>::Scalar::from(ledger_info_len))
-            })
-            .unwrap();
-
-        let ledger_info_bytes_payload = extract_vec(
+        let ledger_info_bytes_payload = extract_vec::<_, _, OFFSET_LEDGER_INFO, LEDGER_INFO_LEN>(
             &mut cs.namespace(|| "extract_ledger_info"),
             &intern_li_alloc,
-            offset_ledger_info_alloc,
-            ledger_info_len_alloc,
         )
         .unwrap();
 
@@ -462,22 +343,9 @@ mod test {
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let offset_signature_alloc =
-            AllocatedNum::alloc(&mut cs.namespace(|| "signature_offset"), || {
-                Ok(<E1 as Engine>::Scalar::from(offset_signature))
-            })
-            .unwrap();
-        let signature_len_alloc =
-            AllocatedNum::alloc(&mut cs.namespace(|| "signature_len"), || {
-                Ok(<E1 as Engine>::Scalar::from(signature_len))
-            })
-            .unwrap();
-
-        let aggregated_sig_bytes_payload = extract_vec(
+        let aggregated_sig_bytes_payload = extract_vec::<_, _, OFFSET_SIGNATURE, SIGNATURE_LEN>(
             &mut cs.namespace(|| "extract_aggregated_sig"),
             &intern_li_alloc,
-            offset_signature_alloc,
-            signature_len_alloc,
         )
         .unwrap();
 
