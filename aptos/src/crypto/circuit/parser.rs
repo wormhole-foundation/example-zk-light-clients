@@ -1,17 +1,7 @@
 use bellpepper_core::{ConstraintSystem, SynthesisError};
 // SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
-use bellpepper_core::num::AllocatedNum;
+use bellpepper_core::boolean::Boolean;
 use ff::PrimeFieldBits;
-
-fn bits_to_u64(bits: &[u8]) -> u64 {
-    let mut value: u64 = 0;
-    for (i, &bit) in bits.iter().enumerate() {
-        if bit == 1 {
-            value |= 1 << i;
-        }
-    }
-    value
-}
 
 pub fn extract_vec<
     F: PrimeFieldBits,
@@ -20,25 +10,70 @@ pub fn extract_vec<
     const LENGTH: usize,
 >(
     _cs: &mut CS,
-    slice: &[AllocatedNum<F>],
-) -> Result<Vec<AllocatedNum<F>>, SynthesisError> {
-    let mut bytes_payload = vec![];
-    for i in OFFSET..OFFSET + LENGTH {
-        bytes_payload.push(slice[i].clone());
+    slice: &[Boolean],
+) -> Result<Vec<Boolean>, SynthesisError> {
+    let mut return_vec = vec![];
+    for boolean in slice.iter().skip(OFFSET).take(LENGTH) {
+        return_vec.push(boolean.clone());
     }
 
-    Ok(bytes_payload)
+    Ok(return_vec)
+}
+
+pub type BitsPayload = (Vec<Boolean>, Vec<Boolean>, Vec<Boolean>);
+
+pub fn handle_new_epoch<
+    F: PrimeFieldBits,
+    CS: ConstraintSystem<F>,
+    const NBR_VALIDATORS: usize,
+    const LEDGER_INFO_LEN: usize,
+    const VALIDATORS_LIST_LEN: usize,
+    const OFFSET_SIGNATURE: usize,
+    const SIGNATURE_LEN: usize,
+>(
+    cs: &mut CS,
+    ledger_info_w_signatures: &[Boolean],
+) -> Result<BitsPayload, SynthesisError> {
+    const OFFSET_LEDGER_INFO: usize = 8;
+    const OFFSET_VALIDATORS_LIST: usize = ( 8 // epoch
+        + 8 // round
+        + 32 // id
+        + 32 // executed state id
+        + 8 // version
+        + 8 // timestamp
+        + 1 // Some
+        + 8 // epoch
+        + 1 ) // next byte
+        * 8;
+
+    let ledger_info =
+        extract_vec::<F, CS, OFFSET_LEDGER_INFO, LEDGER_INFO_LEN>(cs, ledger_info_w_signatures)?;
+    let validators_list = extract_vec::<F, CS, OFFSET_VALIDATORS_LIST, VALIDATORS_LIST_LEN>(
+        cs,
+        ledger_info_w_signatures,
+    )?;
+    let signature =
+        extract_vec::<F, CS, OFFSET_SIGNATURE, SIGNATURE_LEN>(cs, ledger_info_w_signatures)?;
+
+    Ok((ledger_info, validators_list, signature))
 }
 
 #[cfg(test)]
 mod test {
     use arecibo::traits::Engine;
+    use bellpepper_core::boolean::field_into_boolean_vec_le;
     use bellpepper_core::test_cs::TestConstraintSystem;
     use serde::{Deserialize, Serialize};
 
     use crate::crypto::circuit::E1;
 
     use super::*;
+
+    fn compare_list_bools(slice_1: &[Boolean], slice_2: &[Boolean]) {
+        for (elt_1, elt_2) in slice_1.iter().zip(slice_2.iter()) {
+            assert_eq!(elt_1.get_value().unwrap(), elt_2.get_value().unwrap())
+        }
+    }
 
     #[test]
     fn test_extract_mock_data() {
@@ -58,81 +93,97 @@ mod test {
             vec: vec![1, 2, 3, 4, 5],
         };
 
-        let string_bytes_num = data
+        let string_le_bits = data
             .string
             .as_bytes()
             .iter()
-            .map(|b| <E1 as Engine>::Scalar::from(*b as u64))
+            .enumerate()
+            .flat_map(|(i, b)| {
+                field_into_boolean_vec_le(
+                    &mut cs.namespace(|| format!("string byte to bit {i}")),
+                    Some(<E1 as Engine>::Scalar::from(*b as u64)),
+                )
+                .unwrap()
+                .into_iter()
+                .take(8)
+            })
             .collect::<Vec<_>>();
 
-        let number_bytes_num = bcs::to_bytes(&data.number)
-            .unwrap()
-            .iter()
-            .map(|b| <E1 as Engine>::Scalar::from(*b as u64))
-            .collect::<Vec<_>>();
-        let vec_bytes_num = bcs::to_bytes(&data.vec)
-            .unwrap()
-            .iter()
-            .map(|b| <E1 as Engine>::Scalar::from(*b as u64))
-            .collect::<Vec<_>>();
-        let data_bytes_allocated = bcs::to_bytes(&data)
+        let number_le_bits = bcs::to_bytes(&data.number)
             .unwrap()
             .iter()
             .enumerate()
-            .map(|(i, b)| {
-                AllocatedNum::alloc(
-                    &mut cs.namespace(|| format!("data_bytes_allocated_{}", i)),
-                    || Ok(<E1 as Engine>::Scalar::from(*b as u64)),
+            .flat_map(|(i, b)| {
+                field_into_boolean_vec_le(
+                    &mut cs.namespace(|| format!("number byte to bit {i}")),
+                    Some(<E1 as Engine>::Scalar::from(*b as u64)),
                 )
                 .unwrap()
+                .into_iter()
+                .take(8)
             })
             .collect::<Vec<_>>();
+        let vec_le_bits = bcs::to_bytes(&data.vec)
+            .unwrap()
+            .iter()
+            .enumerate()
+            .flat_map(|(i, b)| {
+                field_into_boolean_vec_le(
+                    &mut cs.namespace(|| format!("vec byte to bit {i}")),
+                    Some(<E1 as Engine>::Scalar::from(*b as u64)),
+                )
+                .unwrap()
+                .into_iter()
+                .take(8)
+            })
+            .collect::<Vec<_>>();
+        let data_boolean = bcs::to_bytes(&data)
+            .unwrap()
+            .iter()
+            .enumerate()
+            .flat_map(|(i, b)| {
+                field_into_boolean_vec_le(
+                    &mut cs.namespace(|| format!("byte to bit {i}")),
+                    Some(<E1 as Engine>::Scalar::from(*b as u64)),
+                )
+                .unwrap()
+                .into_iter()
+                .take(8)
+            })
+            .collect::<Vec<Boolean>>();
 
         /*******************************************
          * Extract the string from the data
          *******************************************/
-        // Offset is 1 as 0 is its length
-        // Length 5
-        let alloc_bytes = extract_vec::<_, _, 1, 5>(
-            &mut cs.namespace(|| "extract_string"),
-            &data_bytes_allocated,
-        )
-        .unwrap();
+        // Offset is 8 as 0 is its length
+        // Length 40 bits
+        let booleans =
+            extract_vec::<_, _, 8, 40>(&mut cs.namespace(|| "extract_string"), &data_boolean)
+                .unwrap();
 
-        for (i, alloc_byte) in alloc_bytes.iter().enumerate() {
-            assert_eq!(alloc_byte.get_value().unwrap(), string_bytes_num[i])
-        }
+        compare_list_bools(&booleans, &string_le_bits);
 
         /*******************************************
          * Extract the number from the data
          *******************************************/
         // Offset is str.len() + 1
-        // Length 8 because u64
-        let alloc_bytes = extract_vec::<_, _, 6, 8>(
-            &mut cs.namespace(|| "extract_number"),
-            &data_bytes_allocated,
-        )
-        .unwrap();
+        // Length 64 bits
+        let booleans =
+            extract_vec::<_, _, 48, 64>(&mut cs.namespace(|| "extract_number"), &data_boolean)
+                .unwrap();
 
-        for (i, alloc_byte) in alloc_bytes.iter().enumerate() {
-            // We jump the size value
-            assert_eq!(alloc_byte.get_value().unwrap(), number_bytes_num[i])
-        }
+        compare_list_bools(&booleans, &number_le_bits);
 
         /*******************************************
          * Extract the vector from the data
          *******************************************/
-        // Offset is str.len() + 1 + number.len() + 1 (size of vec)
-        // Length nbr_elements * 8
-        let alloc_bytes =
-            extract_vec::<_, _, 15, 40>(&mut cs.namespace(|| "extract_vec"), &data_bytes_allocated)
+        // Offset is offset_str + str.len()
+        // Length nbr_elements * 8 * 8
+        let booleans =
+            extract_vec::<_, _, 112, 320>(&mut cs.namespace(|| "extract_vec"), &data_boolean)
                 .unwrap();
 
-        for (i, alloc_byte) in alloc_bytes.iter().enumerate() {
-            // We jump the size value
-            assert_eq!(alloc_byte.get_value().unwrap(), vec_bytes_num[i + 1])
-        }
-
+        compare_list_bools(&booleans, &vec_le_bits);
         assert!(cs.is_satisfied());
     }
 
@@ -148,25 +199,36 @@ mod test {
 
         let mut cs = TestConstraintSystem::<<E1 as Engine>::Scalar>::new();
 
-        let intern_li_alloc = aptos_wrapper
+        let intern_li_le_bits = aptos_wrapper
             .get_latest_li_bytes()
             .unwrap()
             .iter()
             .enumerate()
-            .map(|(i, b)| {
-                AllocatedNum::alloc(
-                    &mut cs.namespace(|| format!("ledger_info_byte {i}")),
-                    || Ok(<E1 as Engine>::Scalar::from(*b as u64)),
+            .flat_map(|(i, b)| {
+                field_into_boolean_vec_le(
+                    &mut cs.namespace(|| format!("intern li byte to bit {i}")),
+                    Some(<E1 as Engine>::Scalar::from(*b as u64)),
                 )
                 .unwrap()
+                .into_iter()
+                .take(8)
             })
-            .collect::<Vec<_>>();
+            .collect::<Vec<Boolean>>();
 
-        let ledger_info_bytes_alloc =
+        let ledger_info_le_bits =
             bcs::to_bytes(&aptos_wrapper.get_latest_li().unwrap().ledger_info())
                 .unwrap()
                 .iter()
-                .map(|b| <E1 as Engine>::Scalar::from(*b as u64))
+                .enumerate()
+                .flat_map(|(i, b)| {
+                    field_into_boolean_vec_le(
+                        &mut cs.namespace(|| format!("ledger info byte to bit {i}")),
+                        Some(<E1 as Engine>::Scalar::from(*b as u64)),
+                    )
+                    .unwrap()
+                    .into_iter()
+                    .take(8)
+                })
                 .collect::<Vec<_>>();
 
         const LEDGER_INFO_LEN: usize = 8 // epoch
@@ -177,6 +239,7 @@ mod test {
             + 8 // timestamp
             + 1 // None variant for new epoch state
             + 32; // consensus data hash
+
         const OFFSET_SIGNATURE: usize = LEDGER_INFO_LEN + 1; // next byte
         const SIGNATURE_LEN: usize = 1 + (NBR_VALIDATORS + 7) / 8 + 1 + 1 + 96; // signature_len + (NBR_VALIDATORS) + 7 / 8 + some_sig + sig_len + sig_nbr_bytes
         const OFFSET_LEDGER_INFO: usize = 1; // not taking the variant byte
@@ -184,58 +247,45 @@ mod test {
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let ledger_info_bytes_payload = extract_vec::<_, _, OFFSET_LEDGER_INFO, LEDGER_INFO_LEN>(
-            &mut cs.namespace(|| "extract_ledger_info"),
-            &intern_li_alloc,
-        )
-        .unwrap();
-
-        assert_eq!(
-            ledger_info_bytes_payload.len(),
-            ledger_info_bytes_alloc.len()
-        );
-        for (i, ledger_info_byte) in ledger_info_bytes_alloc.iter().enumerate() {
-            assert_eq!(
-                &ledger_info_bytes_payload[i].get_value().unwrap(),
-                ledger_info_byte
+        let ledger_info_le_bits_payload =
+            extract_vec::<_, _, { OFFSET_LEDGER_INFO * 8 }, { LEDGER_INFO_LEN * 8 }>(
+                &mut cs.namespace(|| "extract_ledger_info"),
+                &intern_li_le_bits,
             )
-        }
+            .unwrap();
+
+        assert_eq!(ledger_info_le_bits_payload.len(), ledger_info_le_bits.len());
+
+        compare_list_bools(&ledger_info_le_bits_payload, &ledger_info_le_bits);
 
         assert!(cs.is_satisfied());
 
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let aggregated_sig_bytes_payload = extract_vec::<_, _, OFFSET_SIGNATURE, SIGNATURE_LEN>(
-            &mut cs.namespace(|| "extract_aggregated_sig"),
-            &intern_li_alloc,
-        )
-        .unwrap();
+        let aggregated_sig_le_bits_payload =
+            extract_vec::<_, _, { OFFSET_SIGNATURE * 8 }, { SIGNATURE_LEN * 8 }>(
+                &mut cs.namespace(|| "extract_aggregated_sig"),
+                &intern_li_le_bits,
+            )
+            .unwrap();
 
         assert_eq!(
-            aggregated_sig_bytes_payload.len() + ledger_info_bytes_payload.len() + 1usize,
-            intern_li_alloc.len()
+            aggregated_sig_le_bits_payload.len() + ledger_info_le_bits_payload.len() + 8usize,
+            intern_li_le_bits.len()
         );
 
         /*******************************************
          * Over testing to ensure proper parsing
          *******************************************/
-        let reconstructed_bytes = vec![
-            vec![AllocatedNum::alloc(&mut cs.namespace(|| "byte_0"), || {
-                Ok(<E1 as Engine>::Scalar::from(0))
-            })
-            .unwrap()],
-            ledger_info_bytes_payload,
-            aggregated_sig_bytes_payload,
+        let reconstructed_le_bits = vec![
+            (0..8).map(|_| Boolean::Constant(false)).collect::<Vec<_>>(),
+            ledger_info_le_bits_payload,
+            aggregated_sig_le_bits_payload,
         ]
         .concat();
 
-        for (i, byte) in intern_li_alloc.iter().enumerate() {
-            assert_eq!(
-                byte.get_value().unwrap(),
-                reconstructed_bytes[i].get_value().unwrap()
-            )
-        }
+        compare_list_bools(&reconstructed_le_bits, &intern_li_le_bits);
     }
 
     #[cfg(feature = "aptos")]
@@ -252,25 +302,36 @@ mod test {
 
         let mut cs = TestConstraintSystem::<<E1 as Engine>::Scalar>::new();
 
-        let intern_li_alloc = aptos_wrapper
+        let intern_li_le_bits = aptos_wrapper
             .get_latest_li_bytes()
             .unwrap()
             .iter()
             .enumerate()
-            .map(|(i, b)| {
-                AllocatedNum::alloc(
-                    &mut cs.namespace(|| format!("ledger_info_byte {i}")),
-                    || Ok(<E1 as Engine>::Scalar::from(*b as u64)),
+            .flat_map(|(i, b)| {
+                field_into_boolean_vec_le(
+                    &mut cs.namespace(|| format!("intern li byte to bit {i}")),
+                    Some(<E1 as Engine>::Scalar::from(*b as u64)),
                 )
                 .unwrap()
+                .into_iter()
+                .take(8)
             })
             .collect::<Vec<_>>();
 
-        let ledger_info_bytes_alloc =
+        let ledger_info_le_bits =
             bcs::to_bytes(&aptos_wrapper.get_latest_li().unwrap().ledger_info())
                 .unwrap()
                 .iter()
-                .map(|b| <E1 as Engine>::Scalar::from(*b as u64))
+                .enumerate()
+                .flat_map(|(i, b)| {
+                    field_into_boolean_vec_le(
+                        &mut cs.namespace(|| format!("ledger info byte to bit {i}")),
+                        Some(<E1 as Engine>::Scalar::from(*b as u64)),
+                    )
+                    .unwrap()
+                    .into_iter()
+                    .take(8)
+                })
                 .collect::<Vec<_>>();
 
         const VALIDATORS_LIST_LEN: usize = 1 + NBR_VALIDATORS * (32 + 49 + 8); // vec size + nbr_validators * (account address + pub key + voting power)
@@ -301,76 +362,85 @@ mod test {
         /*******************************************
          * Extract validator list from the data
          *******************************************/
-        let validator_list_bytes_payload =
-            extract_vec::<_, _, OFFSET_VALIDATOR_LIST, VALIDATORS_LIST_LEN>(
+        let validator_list_le_bits_payload =
+            extract_vec::<_, _, { OFFSET_VALIDATOR_LIST * 8 }, { VALIDATORS_LIST_LEN * 8 }>(
                 &mut cs.namespace(|| "extract_validator_list"),
-                &intern_li_alloc,
+                &intern_li_le_bits,
             )
             .unwrap();
 
-        for (validator_list_byte, i) in validator_list_bytes_payload
+        for (validator_list_bit, i) in validator_list_le_bits_payload
             .iter()
-            .zip(OFFSET_VALIDATOR_LIST..OFFSET_VALIDATOR_LIST + VALIDATORS_LIST_LEN)
+            .zip(OFFSET_VALIDATOR_LIST * 8..(OFFSET_VALIDATOR_LIST + VALIDATORS_LIST_LEN) * 8)
         {
             assert_eq!(
-                validator_list_byte.get_value().unwrap(),
-                intern_li_alloc[i].get_value().unwrap()
+                validator_list_bit.get_value().unwrap(),
+                intern_li_le_bits[i].get_value().unwrap()
             )
         }
 
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let ledger_info_bytes_payload = extract_vec::<_, _, OFFSET_LEDGER_INFO, LEDGER_INFO_LEN>(
-            &mut cs.namespace(|| "extract_ledger_info"),
-            &intern_li_alloc,
-        )
-        .unwrap();
-
-        assert_eq!(
-            ledger_info_bytes_payload.len(),
-            ledger_info_bytes_alloc.len()
-        );
-        for (i, ledger_info_byte) in ledger_info_bytes_alloc.iter().enumerate() {
-            assert_eq!(
-                &ledger_info_bytes_payload[i].get_value().unwrap(),
-                ledger_info_byte
+        let ledger_info_le_bits_payload =
+            extract_vec::<_, _, { OFFSET_LEDGER_INFO * 8 }, { LEDGER_INFO_LEN * 8 }>(
+                &mut cs.namespace(|| "extract_ledger_info"),
+                &intern_li_le_bits,
             )
-        }
+            .unwrap();
+
+        assert_eq!(ledger_info_le_bits_payload.len(), ledger_info_le_bits.len());
+        compare_list_bools(&ledger_info_le_bits_payload, &ledger_info_le_bits);
 
         assert!(cs.is_satisfied());
 
         /*******************************************
          * Extract LedgerInfo from the data
          *******************************************/
-        let aggregated_sig_bytes_payload = extract_vec::<_, _, OFFSET_SIGNATURE, SIGNATURE_LEN>(
-            &mut cs.namespace(|| "extract_aggregated_sig"),
-            &intern_li_alloc,
-        )
-        .unwrap();
+        let aggregated_sig_le_bits_payload =
+            extract_vec::<_, _, { OFFSET_SIGNATURE * 8 }, { SIGNATURE_LEN * 8 }>(
+                &mut cs.namespace(|| "extract_aggregated_sig"),
+                &intern_li_le_bits,
+            )
+            .unwrap();
 
         assert_eq!(
-            aggregated_sig_bytes_payload.len() + ledger_info_bytes_payload.len() + 1usize,
-            intern_li_alloc.len()
+            aggregated_sig_le_bits_payload.len() + ledger_info_le_bits_payload.len() + 8usize,
+            intern_li_le_bits.len()
         );
+
+        /*******************************************
+         * Test handle_new_epoch
+         *******************************************/
+        let (ledger_info, validators_list, signature) = handle_new_epoch::<
+            _,
+            _,
+            NBR_VALIDATORS,
+            { LEDGER_INFO_LEN * 8 },
+            { VALIDATORS_LIST_LEN * 8 },
+            { OFFSET_SIGNATURE * 8 },
+            { SIGNATURE_LEN * 8 },
+        >(&mut cs, &intern_li_le_bits)
+        .unwrap();
+
+        compare_list_bools(&ledger_info, &ledger_info_le_bits_payload);
+        compare_list_bools(&validators_list, &validator_list_le_bits_payload);
+        compare_list_bools(&signature, &aggregated_sig_le_bits_payload);
 
         /*******************************************
          * Over testing to ensure proper parsing
          *******************************************/
-        let reconstructed_bytes = vec![
-            vec![AllocatedNum::alloc(&mut cs.namespace(|| "byte_0"), || {
-                Ok(<E1 as Engine>::Scalar::from(0))
-            })
-            .unwrap()],
-            ledger_info_bytes_payload,
-            aggregated_sig_bytes_payload,
+        let reconstructed_le_bits = vec![
+            (0..8).map(|_| Boolean::Constant(false)).collect::<Vec<_>>(),
+            ledger_info,
+            signature,
         ]
         .concat();
 
-        for (i, byte) in intern_li_alloc.iter().enumerate() {
+        for (i, byte) in intern_li_le_bits.iter().enumerate() {
             assert_eq!(
                 byte.get_value().unwrap(),
-                reconstructed_bytes[i].get_value().unwrap()
+                reconstructed_le_bits[i].get_value().unwrap()
             )
         }
     }
