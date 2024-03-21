@@ -26,7 +26,6 @@ pub type BitsPayload = (Vec<Boolean>, Vec<Boolean>, Vec<Boolean>);
 pub fn handle_new_epoch<
     F: PrimeFieldBits,
     CS: ConstraintSystem<F>,
-    const NBR_VALIDATORS: usize,
     const OFFSET_LEDGER_INFO: usize,
     const LEDGER_INFO_LEN: usize,
     const OFFSET_VALIDATORS_LIST: usize,
@@ -406,7 +405,6 @@ mod test {
         let (ledger_info, validators_list, signature) = handle_new_epoch::<
             _,
             _,
-            NBR_VALIDATORS,
             { OFFSET_LEDGER_INFO * 8 },
             { LEDGER_INFO_LEN * 8 },
             { OFFSET_VALIDATOR_LIST * 8 },
