@@ -1,0 +1,8 @@
+.env
+artifacts/
+cache/
+node_modules/
+typechain-types/
+
+package-lock.json
+yarn-error.log
