@@ -50,6 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
+        working-directory: ${{ matrix.package }}
       - uses: taiki-e/install-action@nextest
       - uses: Swatinem/rust-cache@v2
       # make sure benches don't bit-rot
@@ -75,6 +76,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
+        working-directory: ${{ matrix.package }}
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
