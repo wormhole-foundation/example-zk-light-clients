@@ -26,7 +26,7 @@
 		near-rosetta-rpc    = { git = "https://github.com/near/nearcore"}
 		near-primitives = "0.19.0"
 
-		curve25519-dalek    = { git = "https://github.com/EkaterynaKuznetsova/curve25519-dalek", rev = "9f0cf559de8be0edee3af19f46e4804343d90a70"} 
+		curve25519-dalek    = { git = "https://github.com/EkaterynaKuznetsova/curve25519-dalek", rev = "9f0cf559de8be0edee3af19f46e4804343d90a70"}
 		ed25519-compact     = "2.0.4"
 
 		anyhow              = "1.0.40"
@@ -57,8 +57,7 @@
 		plonky2_sha512      = { path = "crypto/plonky2_sha512" }
 		plonky2_sha256_u32  = { path = "crypto/plonky2_sha256_u32" }
 		plonky2_bn128 		= { path = "crypto/plonky2_bn128"}
-
-
+		stdsimd = { version = "0.3", features = ["std"] }
 
 [profile.release]
 	opt-level = 3
@@ -71,3 +70,4 @@
 
 [profile.test]
 	opt-level = 1
+
