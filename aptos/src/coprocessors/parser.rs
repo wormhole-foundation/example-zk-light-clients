@@ -13,7 +13,7 @@ use lurk::lem::pointers::Ptr;
 use lurk::lem::store::Store;
 use serde::{Deserialize, Serialize};
 
-use crate::corprocessors::utils::extract_slices;
+use crate::coprocessors::utils::extract_slices;
 
 const APTOS_PARSER_SYM: &str = "aptos_parser";
 
@@ -160,7 +160,7 @@ mod test {
     use lurk::public_parameters::supernova_public_params;
     use lurk::state::user_sym;
 
-    use crate::corprocessors::AptosCoproc;
+    use crate::coprocessors::AptosCoproc;
     use crate::NBR_VALIDATORS;
     use crate::unit_tests::aptos::wrapper::AptosWrapper;
 
