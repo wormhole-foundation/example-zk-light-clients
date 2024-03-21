@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0, MIT
 use crate::crypto::hash::prefixed_sha3;
 use crate::crypto::sig::{AggregateSignature, BitVec, PublicKey};
 use crate::types::error::VerifyError;
