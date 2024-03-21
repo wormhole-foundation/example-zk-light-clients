@@ -15,6 +15,7 @@ pub mod chunk_step;
 pub mod equality;
 pub mod hash;
 pub mod iteration_step_wrapper;
+pub mod parser;
 pub mod utils;
 
 pub type E1 = arecibo::provider::Bn256EngineKZG;
