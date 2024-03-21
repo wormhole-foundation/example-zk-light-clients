@@ -17,8 +17,11 @@ defaults:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
 
+    name: hardhat tests
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,24 +39,6 @@ jobs:
 
       - name: Run check
         run: npm_config_yes=true npm run check
-
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Use Node.js 18
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18.x'
-
-      - name: Install yarn
-        run: npm install --global yarn
-
-      - name: Install packages
-        run: yarn
 
       - name: Run tests
         run: npm_config_yes=true npm run test
