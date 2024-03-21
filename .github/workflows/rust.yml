@@ -42,38 +42,46 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
+        package:
+          - "aptos"
       fail-fast: false
     env:
       RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
       - uses: taiki-e/install-action@nextest
       - uses: Swatinem/rust-cache@v2
       # make sure benches don't bit-rot
       - name: build benches
         run: cargo build --benches --release
+        working-directory: ${{ github.workspace }}/${{ matrix.package }}
       # TODO all-features
       - name: cargo test
         run: |
           cargo nextest run --release --profile ci
+        working-directory: ${{ github.workspace }}/${{ matrix.package }}
       - name: Doctests
         run: |
           cargo test --doc
+        working-directory: ${{ github.workspace }}/${{ matrix.package }}
 
   clippy:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          - "aptos"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       # See '.cargo/config' for list of enabled/disabled clippy lints
       - name: rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all --check
+        run: cargo fmt --all --check
+        working-directory: ${{ github.workspace }}/${{ matrix.package }}
       - name: cargo clippy
         run: cargo xclippy -D warnings
+        working-directory: ${{ github.workspace }}/${{ matrix.package }}
