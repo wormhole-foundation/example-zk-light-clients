@@ -1,0 +1,13 @@
+target/
+.DS_Store
+.vscode/
+Cargo.lock
+near_state_proofs/script/Cargo.lock
+near_state_proofs/script/target
+near_state_proofs/vault-contract/target
+.idea
+.env
+/proofs/
+
+**/*.db
+**/*.proof
