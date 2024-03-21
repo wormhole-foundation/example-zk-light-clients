@@ -1,15 +1,44 @@
 // SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
-use crate::crypto::hash::{hash_data, prefixed_sha3, CryptoHash, HashValue};
+
+use std::ops::Deref;
+
+use getset::Getters;
+use serde::{Deserialize, Serialize};
+use test_strategy::Arbitrary;
+
+use crate::crypto::hash::{CryptoHash, hash_data, HashValue, prefixed_sha3};
 use crate::crypto::sig::AggregateSignature;
+use crate::NBR_VALIDATORS;
 use crate::types::block_info::BlockInfo;
 use crate::types::epoch_state::EpochState;
 use crate::types::error::VerifyError;
 use crate::types::validator::ValidatorVerifier;
 use crate::types::Version;
-use getset::Getters;
-use serde::{Deserialize, Serialize};
-use std::ops::Deref;
-use test_strategy::Arbitrary;
+
+pub const OFFSET_VALIDATOR_LIST: usize = 8 // epoch
+    + 8 // round
+    + 32 // id
+    + 32 // executed state id
+    + 8 // version
+    + 8 // timestamp
+    + 1 // Some
+    + 8 // epoch
+    + 1; // next byte
+pub const VALIDATORS_LIST_LEN: usize = 1 + NBR_VALIDATORS * (32 + 49 + 8); // vec size + nbr_validators * (account address + pub key + voting power)
+pub const OFFSET_LEDGER_INFO: usize = 1; // not taking the variant byte
+pub const LEDGER_INFO_LEN: usize = 8 // epoch
+        + 8 // round
+        + 32 // id
+        + 32 // executed state id
+        + 8 // version
+        + 8 // timestamp
+        + 1 // Some
+        + 8 // epoch
+        + VALIDATORS_LIST_LEN
+        + 32; // consensus data hash
+pub const OFFSET_SIGNATURE: usize = LEDGER_INFO_LEN + 1; // next byte
+pub const SIGNATURE_LEN: usize = 1 + (NBR_VALIDATORS + 7) / 8 + 1 + 1 + 96;
+
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Arbitrary)]
 pub struct LedgerInfo {
     commit_info: BlockInfo,
@@ -95,9 +124,11 @@ impl Deref for LedgerInfoWithSignatures {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::crypto::hash::prefixed_sha3;
     use tiny_keccak::{Hasher, Sha3};
+
+    use crate::crypto::hash::prefixed_sha3;
+
+    use super::*;
 
     #[test]
     fn test_hash() {

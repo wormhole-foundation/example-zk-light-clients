@@ -5,3 +5,5 @@ pub mod merkle;
 pub mod types;
 #[cfg(test)]
 pub mod unit_tests;
+
+pub const NBR_VALIDATORS: usize = 131;
