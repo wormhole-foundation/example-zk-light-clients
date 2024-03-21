@@ -8,6 +8,12 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'near/**'
+
+defaults:
+  run:
+    working-directory: ./near/contracts/hardhat
 
 jobs:
   check:
@@ -23,15 +29,12 @@ jobs:
           node-version: '18.x'
 
       - name: Install yarn
-        working-directory: ./contracts/hardhat
         run: npm install --global yarn
 
       - name: Install packages
-        working-directory: ./contracts/hardhat
         run: yarn
 
       - name: Run check
-        working-directory: ./contracts/hardhat
         run: npm_config_yes=true npm run check
 
   test:
@@ -47,13 +50,10 @@ jobs:
           node-version: '18.x'
 
       - name: Install yarn
-        working-directory: ./contracts/hardhat
         run: npm install --global yarn
 
       - name: Install packages
-        working-directory: ./contracts/hardhat
         run: yarn
 
       - name: Run tests
-        working-directory: ./contracts/hardhat
         run: npm_config_yes=true npm run test

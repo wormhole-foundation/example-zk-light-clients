@@ -3,15 +3,20 @@ name: Crypto
 on:
   push:
     branches:
-      - main
-      - master
+      - "main"
   pull_request:
     branches:
       - main
+    paths:
+      - 'near/**'
 
 env:
   RUST_VERSION_NIGHTLY: nightly-2023-10-24
   CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    working-directory: ./near
 
 jobs:
   lint-rust:

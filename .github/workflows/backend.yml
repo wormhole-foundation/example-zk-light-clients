@@ -1,0 +1,39 @@
+name: Backend
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'near/**'
+
+defaults:
+  run:
+    working-directory: ./near/backend
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+
+      - name: Install packages
+        run: yarn install
+
+      - name: Run fmt check
+        run: yarn format-check
+
+      - name: Run lint
+        run: yarn lint
