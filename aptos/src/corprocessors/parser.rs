@@ -13,16 +13,16 @@ use lurk::lem::store::Store;
 use serde::{Deserialize, Serialize};
 
 const NBR_VALIDATORS: usize = 131;
-const VALIDATORS_LIST_LEN: usize = 1 + NBR_VALIDATORS * (32 + 49 + 8); // vec size + nbr_validators * (account address + pub key + voting power)
 const OFFSET_VALIDATOR_LIST: usize = 8 // epoch
-        + 8 // round
-        + 32 // id
-        + 32 // executed state id
-        + 8 // version
-        + 8 // timestamp
-        + 1 // Some
-        + 8 // epoch
-        + 1; // next byte
+    + 8 // round
+    + 32 // id
+    + 32 // executed state id
+    + 8 // version
+    + 8 // timestamp
+    + 1 // Some
+    + 8 // epoch
+    + 1; // next byte
+const VALIDATORS_LIST_LEN: usize = 1 + NBR_VALIDATORS * (32 + 49 + 8); // vec size + nbr_validators * (account address + pub key + voting power)
 const OFFSET_LEDGER_INFO: usize = 1; // not taking the variant byte
 const LEDGER_INFO_LEN: usize = 8 // epoch
     + 8 // round
@@ -34,7 +34,6 @@ const LEDGER_INFO_LEN: usize = 8 // epoch
     + 8 // epoch
     + VALIDATORS_LIST_LEN
     + 32; // consensus data hash
-
 const OFFSET_SIGNATURE: usize = LEDGER_INFO_LEN + 1; // next byte
 const SIGNATURE_LEN: usize = 1 + (NBR_VALIDATORS + 7) / 8 + 1 + 1 + 96;
 
