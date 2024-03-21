@@ -11,6 +11,8 @@ bytes = { version = "1.5.0", features = ["serde"] }
 getset = "0.1.2"
 hex = "0.4.3"
 itertools = "0.12.1"
+lurk = "0.3.1"
+lurk-macros = "0.2.0"
 proptest = "1.4.0"
 serde = "1.0.193"
 serde_bytes = "0.11.6"
