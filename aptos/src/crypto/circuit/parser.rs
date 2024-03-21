@@ -1,5 +1,6 @@
-use bellpepper_core::{ConstraintSystem, SynthesisError};
 // SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
+
+use bellpepper_core::{ConstraintSystem, SynthesisError};
 use bellpepper_core::boolean::Boolean;
 use ff::PrimeFieldBits;
 
@@ -26,7 +27,9 @@ pub fn handle_new_epoch<
     F: PrimeFieldBits,
     CS: ConstraintSystem<F>,
     const NBR_VALIDATORS: usize,
+    const OFFSET_LEDGER_INFO: usize,
     const LEDGER_INFO_LEN: usize,
+    const OFFSET_VALIDATORS_LIST: usize,
     const VALIDATORS_LIST_LEN: usize,
     const OFFSET_SIGNATURE: usize,
     const SIGNATURE_LEN: usize,
@@ -34,18 +37,6 @@ pub fn handle_new_epoch<
     cs: &mut CS,
     ledger_info_w_signatures: &[Boolean],
 ) -> Result<BitsPayload, SynthesisError> {
-    const OFFSET_LEDGER_INFO: usize = 8;
-    const OFFSET_VALIDATORS_LIST: usize = ( 8 // epoch
-        + 8 // round
-        + 32 // id
-        + 32 // executed state id
-        + 8 // version
-        + 8 // timestamp
-        + 1 // Some
-        + 8 // epoch
-        + 1 ) // next byte
-        * 8;
-
     let ledger_info =
         extract_vec::<F, CS, OFFSET_LEDGER_INFO, LEDGER_INFO_LEN>(cs, ledger_info_w_signatures)?;
     let validators_list = extract_vec::<F, CS, OFFSET_VALIDATORS_LIST, VALIDATORS_LIST_LEN>(
@@ -416,7 +407,9 @@ mod test {
             _,
             _,
             NBR_VALIDATORS,
+            { OFFSET_LEDGER_INFO * 8 },
             { LEDGER_INFO_LEN * 8 },
+            { OFFSET_VALIDATOR_LIST * 8 },
             { VALIDATORS_LIST_LEN * 8 },
             { OFFSET_SIGNATURE * 8 },
             { SIGNATURE_LEN * 8 },
