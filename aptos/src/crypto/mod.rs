@@ -1,6 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
-pub mod circuit;
+// SPDX-License-Identifier: Apache-2.0, MIT
 mod error;
 pub mod hash;
 pub mod sig;
-pub mod supernova;

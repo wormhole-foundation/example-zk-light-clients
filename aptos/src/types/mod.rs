@@ -1,8 +1,7 @@
-// SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0, MIT
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use test_strategy::Arbitrary;
 
-mod api;
 pub mod block_info;
 pub mod epoch_state;
 pub mod error;

@@ -20,16 +20,6 @@ test-strategy = "0.3.1"
 thiserror = "1.0.56"
 tiny-keccak = { version = "2.0.2", features = ["sha3"] }
 
-# Prover dep
-arecibo = { git = "https://github.com/lurk-lab/arecibo", branch = "dev", package = "arecibo" }
-bellpepper-core = { version = "0.4.0", default-features = false }
-bellpepper = { version = "0.4.1", default-features = false }
-bellpepper-chunk = { git = "https://github.com/tchataigner/bellpepper-gadgets", branch = "feature/chunk-merkle-example", package = "bellpepper-chunk" }
-bellpepper-keccak = { git = "https://github.com/tchataigner/bellpepper-gadgets", branch = "feature/chunk-merkle-example", package = "bellpepper-keccak" }
-bellpepper-merkle-inclusion = { git = "https://github.com/tchataigner/bellpepper-gadgets", branch = "feature/chunk-merkle-example", package = "bellpepper-merkle-inclusion" }
-ff = "0.13.0"
-halo2curves = { version = "0.6.0", features = ["bits", "derive_serde"] }
-
 # shallow cloning would sure help here https://github.com/rust-lang/cargo/issues/1171
 aptos-crypto = { git = "https://github.com/aptos-labs/aptos-core/", tag = "aptos-node-v1.10.0", optional = true }
 aptos-executor = { git = "https://github.com/aptos-labs/aptos-core/", tag = "aptos-node-v1.10.0", optional = true }
@@ -70,7 +60,3 @@ aptos = [
     "dep:aptos-storage-interface",
 ]
 flamegraph = ["pprof/flamegraph", "pprof/criterion"]
-
-[[bench]]
-name = "proof"
-harness = false

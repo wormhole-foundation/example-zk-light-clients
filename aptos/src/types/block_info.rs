@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0, MIT
 use crate::crypto::hash::HashValue;
 use crate::types::epoch_state::EpochState;
 use crate::types::{Round, Version};
