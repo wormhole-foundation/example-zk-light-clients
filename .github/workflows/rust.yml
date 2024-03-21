@@ -84,7 +84,7 @@ jobs:
         with:
           command: fmt
           args: --all --check
-        working-directory: ${{ matrix.package }}
+          working-directory: ${{ matrix.package }}
       - name: cargo clippy
         run: cargo xclippy -D warnings
         working-directory: ${{ matrix.package }}
