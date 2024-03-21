@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1 OR GPL-3.0-or-later
 
-use bellpepper_core::{ConstraintSystem, SynthesisError};
 use bellpepper_core::boolean::Boolean;
+use bellpepper_core::{ConstraintSystem, SynthesisError};
 use ff::PrimeFieldBits;
 
 pub fn extract_vec<
