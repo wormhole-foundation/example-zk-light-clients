@@ -2,11 +2,11 @@
 
 use std::marker::PhantomData;
 
-use bellpepper_core::{ConstraintSystem, SynthesisError};
 use bellpepper_core::boolean::Boolean;
+use bellpepper_core::{ConstraintSystem, SynthesisError};
 use lurk::circuit::gadgets::pointer::AllocatedPtr;
-use lurk::coprocessor::{CoCircuit, Coprocessor};
 use lurk::coprocessor::gadgets::{chain_car_cdr, construct_list};
+use lurk::coprocessor::{CoCircuit, Coprocessor};
 use lurk::field::LurkField;
 use lurk::lem::circuit::GlobalAllocator;
 use lurk::lem::pointers::Ptr;
@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::coprocessors::utils::extract_slices;
 
+#[allow(dead_code)]
 const APTOS_PARSER_SYM: &str = "aptos_parser";
 
 /// Structure representing the bytes parser Coprocessor
@@ -152,17 +153,17 @@ mod test {
     use lurk::dual_channel::dummy_terminal;
     use lurk::lang::Lang;
     use lurk::lem::eval::{
-        EvalConfig, evaluate, make_cprocs_funcs_from_lang, make_eval_step_from_config,
+        evaluate, make_cprocs_funcs_from_lang, make_eval_step_from_config, EvalConfig,
     };
-    use lurk::proof::RecursiveSNARKTrait;
     use lurk::proof::supernova::SuperNovaProver;
+    use lurk::proof::RecursiveSNARKTrait;
     use lurk::public_parameters::instance::Instance;
     use lurk::public_parameters::supernova_public_params;
     use lurk::state::user_sym;
 
     use crate::coprocessors::AptosCoproc;
-    use crate::NBR_VALIDATORS;
     use crate::unit_tests::aptos::wrapper::AptosWrapper;
+    use crate::NBR_VALIDATORS;
 
     use super::*;
 

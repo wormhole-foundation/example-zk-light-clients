@@ -3,6 +3,7 @@ use bellpepper_core::ConstraintSystem;
 use lurk::circuit::gadgets::pointer::AllocatedPtr;
 use lurk::field::LurkField;
 
+#[allow(dead_code)]
 /// Converts an `AllocatedPtr` to a `Boolean`. It assumes that the `AllocatedPtr` is a pointer to a boolean.
 pub fn alloc_ptr_to_boolean<F: LurkField, CS: ConstraintSystem<F>>(
     cs: &mut CS,
@@ -17,6 +18,7 @@ pub fn alloc_ptr_to_boolean<F: LurkField, CS: ConstraintSystem<F>>(
     )
 }
 
+#[allow(dead_code)]
 /// Converts a `Vec<AllocatedPtr>` to a `Vec<Boolean>`. It assumes that the `AllocatedPtr` is a pointer to a boolean.
 pub fn vec_to_boolean<F: LurkField, CS: ConstraintSystem<F>>(
     cs: &mut CS,
@@ -34,7 +36,7 @@ pub fn vec_to_boolean<F: LurkField, CS: ConstraintSystem<F>>(
 }
 
 /// Extracts slices from a vector of data based on the provided ranges.
-pub fn extract_slices<T: Clone>(data: &Vec<T>, ranges: &[(usize, usize)]) -> Vec<Vec<T>> {
+pub fn extract_slices<T: Clone>(data: &[T], ranges: &[(usize, usize)]) -> Vec<Vec<T>> {
     ranges
         .iter()
         .map(|&(offset, length)| data[offset..offset + length].to_vec())

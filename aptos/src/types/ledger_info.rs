@@ -6,14 +6,14 @@ use getset::Getters;
 use serde::{Deserialize, Serialize};
 use test_strategy::Arbitrary;
 
-use crate::crypto::hash::{CryptoHash, hash_data, HashValue, prefixed_sha3};
+use crate::crypto::hash::{hash_data, prefixed_sha3, CryptoHash, HashValue};
 use crate::crypto::sig::AggregateSignature;
-use crate::NBR_VALIDATORS;
 use crate::types::block_info::BlockInfo;
 use crate::types::epoch_state::EpochState;
 use crate::types::error::VerifyError;
 use crate::types::validator::ValidatorVerifier;
 use crate::types::Version;
+use crate::NBR_VALIDATORS;
 
 pub const OFFSET_VALIDATOR_LIST: usize = (8 // epoch
     + 8 // round
@@ -24,21 +24,26 @@ pub const OFFSET_VALIDATOR_LIST: usize = (8 // epoch
     + 1 // Some
     + 8 // epoch
     + 1)
-    * 8; // next byte
-pub const VALIDATORS_LIST_LEN: usize = (1 + NBR_VALIDATORS * (32 + 49 + 8)) * 8; // vec size + nbr_validators * (account address + pub key + voting power)
-pub const OFFSET_LEDGER_INFO: usize = 8; // not taking the variant byte
+    * 8;
+// next byte
+pub const VALIDATORS_LIST_LEN: usize = (1 + NBR_VALIDATORS * (32 + 49 + 8)) * 8;
+// vec size + nbr_validators * (account address + pub key + voting power)
+pub const OFFSET_LEDGER_INFO: usize = 8;
+// not taking the variant byte
 pub const LEDGER_INFO_LEN: usize = (8 // epoch
-        + 8 // round
-        + 32 // id
-        + 32 // executed state id
-        + 8 // version
-        + 8 // timestamp
-        + 1 // Some
-        + 8 // epoch
-        + 32)
+    + 8 // round
+    + 32 // id
+    + 32 // executed state id
+    + 8 // version
+    + 8 // timestamp
+    + 1 // Some
+    + 8 // epoch
+    + 32)
     * 8
-    + VALIDATORS_LIST_LEN; // consensus data hash
-pub const OFFSET_SIGNATURE: usize = LEDGER_INFO_LEN + 8; // next byte
+    + VALIDATORS_LIST_LEN;
+// consensus data hash
+pub const OFFSET_SIGNATURE: usize = LEDGER_INFO_LEN + 8;
+// next byte
 pub const SIGNATURE_LEN: usize = (1 + (NBR_VALIDATORS + 7) / 8 + 1 + 1 + 96) * 8;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Arbitrary)]
