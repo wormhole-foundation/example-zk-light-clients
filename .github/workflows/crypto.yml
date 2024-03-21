@@ -11,7 +11,7 @@ on:
       - 'near/**'
 
 env:
-  RUST_VERSION_NIGHTLY: nightly-2023-10-24
+  RUST_VERSION_NIGHTLY: nightly-2024-01-25
   CARGO_TERM_COLOR: always
 
 defaults:
@@ -31,6 +31,9 @@ jobs:
         with:
           toolchain: ${{ env.RUST_VERSION_NIGHTLY }}
           components: clippy
+
+      - name: Set default Rust toolchain
+        run: rustup default ${{ env.RUST_VERSION_NIGHTLY }}
 
       - name: Run clippy
         run: cargo clippy --all-targets --all-features
