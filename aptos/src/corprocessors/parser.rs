@@ -15,8 +15,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::corprocessors::utils::extract_slices;
 
+const APTOS_PARSER_SYM: &str = "aptos_parser";
+
 /// Structure representing the bytes parser Coprocessor
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct AptosParser<
     F: LurkField,
     const OFFSET_LEDGER_INFO: usize = { crate::types::ledger_info::OFFSET_LEDGER_INFO },
@@ -75,7 +77,12 @@ impl<
             ],
         );
 
-        let list = construct_list(cs, g, s, &extracted_ptr, None)?;
+        let ptrs_list = extracted_ptr
+            .iter()
+            .map(|bits| construct_list(cs, g, s, bits, None))
+            .collect::<Result<Vec<_>, SynthesisError>>()?;
+
+        let list = construct_list(cs, g, s, &ptrs_list, None)?;
 
         Ok(list)
     }
@@ -113,7 +120,10 @@ impl<
         let (bits, _) = s
             .fetch_list(&args[0])
             .expect("AptosParser: Failed to retrieve bit list from given pointer");
-
+        dbg!(bits.len());
+        dbg!((OFFSET_LEDGER_INFO, LEDGER_INFO_LEN));
+        dbg!((OFFSET_VALIDATOR_LIST, VALIDATORS_LIST_LEN));
+        dbg!((OFFSET_SIGNATURE, SIGNATURE_LEN));
         let extracted_bits = extract_slices(
             &bits,
             &[
@@ -123,6 +133,103 @@ impl<
             ],
         );
 
-        s.list(extracted_bits)
+        s.list(
+            extracted_bits
+                .into_iter()
+                .map(|bits| s.list(bits))
+                .collect::<Vec<_>>(),
+        )
+    }
+}
+
+#[cfg(all(test, feature = "aptos"))]
+mod test {
+    use std::sync::Arc;
+
+    use bellpepper::gadgets::multipack::bytes_to_bits_le;
+    use halo2curves::bn256::Fr as Scalar;
+    use itertools::Itertools;
+    use lurk::dual_channel::dummy_terminal;
+    use lurk::lang::Lang;
+    use lurk::lem::eval::{
+        EvalConfig, evaluate, make_cprocs_funcs_from_lang, make_eval_step_from_config,
+    };
+    use lurk::proof::RecursiveSNARKTrait;
+    use lurk::proof::supernova::SuperNovaProver;
+    use lurk::public_parameters::instance::Instance;
+    use lurk::public_parameters::supernova_public_params;
+    use lurk::state::user_sym;
+
+    use crate::corprocessors::AptosCoproc;
+    use crate::NBR_VALIDATORS;
+    use crate::unit_tests::aptos::wrapper::AptosWrapper;
+
+    use super::*;
+
+    const REDUCTION_COUNT: usize = 1;
+
+    fn lurk_program<F: LurkField>(store: &Store<F>, input: Vec<u8>) -> Ptr {
+        let program = format!(
+            r#"
+            ({APTOS_PARSER_SYM} '({}))
+        "#,
+            input.iter().map(|b| format!("{b}")).join(" ")
+        );
+
+        store.read_with_default_state(&program).unwrap()
+    }
+
+    #[test]
+    fn test_extract() {
+        // Get command line input
+        let args = std::env::args().collect::<Vec<_>>();
+
+        // Initialize store, responsible for handling variables in the lurk context
+        let store: Arc<Store<Scalar>> = Arc::new(Store::default());
+
+        // Get LedgerInfoWithSignatures froù AptosWrapper
+        let mut aptos_wrapper = AptosWrapper::new(1, NBR_VALIDATORS);
+        aptos_wrapper.commit_new_epoch();
+        dbg!(aptos_wrapper.get_latest_li().unwrap());
+        let li_bytes = aptos_wrapper.get_latest_li_bytes().unwrap();
+
+        let li_le_bits: Vec<u8> = bytes_to_bits_le(&li_bytes)
+            .iter()
+            .map(|b| *b as u8)
+            .collect();
+        dbg!(li_le_bits.len());
+        // Create a pointer to the lurk program
+        let program = lurk_program(&*store, li_le_bits);
+
+        // Setup the lang to be able to use our Coprocessor
+        let mut lang = Lang::<Scalar, AptosCoproc<Scalar>>::new();
+        lang.add_coprocessor(user_sym(APTOS_PARSER_SYM), AptosParser::<Scalar>::default());
+
+        let lurk_step = make_eval_step_from_config(&EvalConfig::new_nivc(&lang));
+        let cprocs = make_cprocs_funcs_from_lang(&lang);
+
+        // Evaluate the program
+        let frames = evaluate(
+            Some((&lurk_step, &cprocs, &lang)),
+            program,
+            &*store,
+            1000,
+            &dummy_terminal(),
+        )
+        .unwrap();
+
+        // Instantiate prover
+        let supernova_prover =
+            SuperNovaProver::<Scalar, AptosCoproc<Scalar>>::new(REDUCTION_COUNT, Arc::new(lang));
+        let instance = Instance::new_supernova(&supernova_prover, true);
+        let pp = supernova_public_params(&instance).unwrap();
+
+        // Proving
+        let (proof, z0, zi, _) = supernova_prover
+            .prove_from_frames(&pp, &frames, &store, None)
+            .unwrap();
+
+        // Verifying
+        assert!(proof.verify(&pp, &z0, &zi).unwrap());
     }
 }

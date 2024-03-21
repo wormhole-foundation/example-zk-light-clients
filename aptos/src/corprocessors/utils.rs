@@ -11,7 +11,7 @@ pub fn alloc_ptr_to_boolean<F: LurkField, CS: ConstraintSystem<F>>(
     Boolean::Is(
         AllocatedBit::alloc(
             &mut cs.namespace(|| "allocated_ptr to boolean"),
-            Some(allocated_ptr.hash().get_value() == F::ONE),
+            Some(allocated_ptr.hash().get_value().unwrap_or(F::ZERO) == F::ONE),
         )
         .expect("alloc_ptr_to_boolean AllocatedBit::alloc panic"),
     )
