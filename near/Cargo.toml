@@ -26,7 +26,8 @@
 		near-rosetta-rpc    = { git = "https://github.com/near/nearcore"}
 		near-primitives = "0.19.0"
 
-		curve25519-dalek    = { git = "https://github.com/EkaterynaKuznetsova/curve25519-dalek", rev = "9f0cf559de8be0edee3af19f46e4804343d90a70"}
+		curve25519-dalek    = { git = "https://github.com/wormhole-foundation/curve25519-dalek.git", branch = "add-edwards-projections"}
+
 		ed25519-compact     = "2.0.4"
 
 		anyhow              = "1.0.40"
