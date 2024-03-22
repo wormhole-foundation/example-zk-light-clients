@@ -111,7 +111,7 @@ pub trait CircuitBuilderHash<F: RichField + Extendable<D>, const D: usize> {
 }
 
 impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderHash<F, D>
-for CircuitBuilder<F, D>
+    for CircuitBuilder<F, D>
 {
     fn add_virtual_hash_input_target(
         &mut self,
@@ -121,7 +121,10 @@ for CircuitBuilder<F, D>
         let input_bits = blocks_input_bits * blocks_num;
         let mut input: Vec<U64Target> = vec![];
         for _ in 0..(input_bits / 64) {
-            input.push(U64Target { hi: self.add_virtual_u32_target(), lo: self.add_virtual_u32_target() });
+            input.push(U64Target {
+                hi: self.add_virtual_u32_target(),
+                lo: self.add_virtual_u32_target(),
+            });
         }
         let mut blocks = Vec::new();
         for _ in 0..blocks_num - 1 {

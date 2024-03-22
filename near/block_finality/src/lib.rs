@@ -17,8 +17,8 @@
 //! - `utils`: Contains utility functions and helpers to load blocks, validators and converting types.
 
 pub mod prove_block;
-pub mod prove_primitives;
 pub mod prove_crypto;
+pub mod prove_primitives;
 pub mod recursion;
 pub mod service;
 pub mod types;

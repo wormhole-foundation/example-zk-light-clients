@@ -472,6 +472,5 @@ mod tests {
             let proof = data.prove(pw).unwrap();
             assert!(data.verify(proof).is_ok());
         }
-        
     }
 }

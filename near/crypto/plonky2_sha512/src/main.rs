@@ -5,8 +5,8 @@ use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::CircuitConfig;
 use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 use plonky2::util::timing::TimingTree;
-use sha2::{Digest, Sha512};
 use rand::random;
+use sha2::{Digest, Sha512};
 
 use plonky2_sha512::circuit::{array_to_bits, sha512_circuit};
 
@@ -64,7 +64,7 @@ fn main() -> Result<()> {
     const MSG_SIZE: usize = 128;
 
     let mut msg: Vec<u8> = (0..MSG_SIZE).map(|_| random::<u8>() as u8).collect();
-    
+
     let mut hasher = Sha512::new();
     hasher.update(msg.clone());
     let hash = hasher.finalize();

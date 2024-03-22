@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use anyhow::Result;
 use log::Level;
 use near_primitives::{borsh, hash::hash};
+use plonky2::plonk::circuit_data::{CommonCircuitData, VerifierOnlyCircuitData};
+use plonky2::plonk::config::Hasher;
 use plonky2::{
     hash::hash_types::RichField,
     iop::witness::{PartialWitness, WitnessWrite},
@@ -14,28 +16,26 @@ use plonky2::{
     },
     util::timing::TimingTree,
 };
-use plonky2::plonk::circuit_data::{CommonCircuitData, VerifierOnlyCircuitData};
-use plonky2::plonk::config::Hasher;
 use plonky2_field::extension::Extendable;
 
-use plonky2_ed25519::gadgets::eddsa::{ed25519_circuit, EDDSATargets, fill_ecdsa_targets};
+use plonky2_ed25519::gadgets::eddsa::{ed25519_circuit, fill_ecdsa_targets, EDDSATargets};
 use plonky2_sha256::circuit::{array_to_bits, sha256_circuit, Sha256Targets};
 use plonky2_sha256_u32::sha256::{CircuitBuilderHashSha2, WitnessHashSha2};
 use plonky2_sha256_u32::types::CircuitBuilderHash;
 
-use crate::{recursion::recursive_proof, utils::u8bit_to_u8byte};
 use crate::utils::vec_u32_to_u8;
+use crate::{recursion::recursive_proof, utils::u8bit_to_u8byte};
 
 pub const SHA256_BLOCK: usize = 512;
 
-/// Verifies that two proofs for hashes are valid & aggregates them into one proof. 
+/// Verifies that two proofs for hashes are valid & aggregates them into one proof.
 /// Concatenates hashes into one array, proves that a hash of the concatenation is equal to the third hash.
 /// Aggregates two proofs: aggregation of first two hashes & proof of the third one, sets the third hash as public inputs.
 /// All proving functions use u32 values.
 /// See more [`prove_sub_hashes_bits`]
 pub fn prove_sub_hashes_u32<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     set_pis_1: bool,
@@ -54,9 +54,9 @@ pub fn prove_sub_hashes_u32<
         &ProofWithPublicInputs<F, C, D>,
     )>,
 ) -> Result<(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)>
-    where
-        C::Hasher: AlgebraicHasher<F>,
-        [(); C::Hasher::HASH_SIZE]:,
+where
+    C::Hasher: AlgebraicHasher<F>,
+    [(); C::Hasher::HASH_SIZE]:,
 {
     let mut pis: Option<&[F]> = Option::None;
     let mut vec = vec![];
@@ -102,7 +102,7 @@ pub fn prove_sub_hashes_u32<
     Ok((result_d, result_p))
 }
 
-/// Verifies that two proofs for hashes are valid & aggregates them into one proof. 
+/// Verifies that two proofs for hashes are valid & aggregates them into one proof.
 /// Concatenates hashes into one array, proves that a hash of the concatenation is equal to the third hash.
 /// Aggregates two proofs: aggregation of first two hashes & proof of the third one, sets the third hash as public inputs.
 /// All proving functions use bit values.
@@ -124,7 +124,7 @@ pub fn prove_sub_hashes_u32<
 ///
 pub fn prove_sub_hashes_bits<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     set_pis_1: bool,
@@ -143,9 +143,9 @@ pub fn prove_sub_hashes_bits<
         &ProofWithPublicInputs<F, C, D>,
     )>,
 ) -> Result<(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)>
-    where
-        C::Hasher: AlgebraicHasher<F>,
-        [(); C::Hasher::HASH_SIZE]:,
+where
+    C::Hasher: AlgebraicHasher<F>,
+    [(); C::Hasher::HASH_SIZE]:,
 {
     let mut pis: Option<&[F]> = Option::None;
     let mut vec = vec![];
@@ -231,7 +231,7 @@ pub fn prove_sub_hashes_bits<
 /// ```
 pub fn sha256_proof_u32<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     msg: &[u8],
@@ -256,7 +256,7 @@ pub fn sha256_proof_u32<
 /// Computes SHA256 targets and proving scheme depending on specific message length in bits and save in HashMap in order to reuse.
 pub fn get_sha256_circuit_targets_bits<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     msg_len_in_bits: usize,
@@ -284,7 +284,7 @@ pub fn get_sha256_circuit_targets_bits<
 /// See [`sha256_proof_pis_bits`] for more details.
 pub fn sha256_proof_reuse_circuit_bits<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     msg: &[u8],
@@ -325,7 +325,7 @@ pub fn sha256_proof_reuse_circuit_bits<
 /// - `ProofWithPublicInputs<F, C, D>`: The proof along with public inputs.
 pub fn sha256_proof_pis_bits<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     msg: &[u8],
@@ -360,7 +360,7 @@ pub fn sha256_proof_pis_bits<
 
 pub fn get_ed25519_circuit_targets<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     msg_len_in_bits: usize,
@@ -386,7 +386,7 @@ pub fn get_ed25519_circuit_targets<
 /// Creating ED25519 proof reusing proving schema and targets
 pub fn ed25519_proof_reuse_circuit<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     msg: &[u8],
@@ -417,11 +417,7 @@ pub fn ed25519_proof_reuse_circuit<
 /// # Returns
 ///
 /// Returns a result containing the computed Ed25519 proof with public inputs.
-pub fn ed25519_proof<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
-    const D: usize,
->(
+pub fn ed25519_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
     msg: &[u8],
     sigv: &[u8],
     pkv: &[u8],
@@ -438,10 +434,10 @@ pub fn ed25519_proof<
 /// Computes EDD5519 targets and proving schema depending on specific message length in bits.
 pub fn get_ed25519_targets<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
-    msg_len_in_bits: usize
+    msg_len_in_bits: usize,
 ) -> anyhow::Result<(CircuitData<F, C, D>, EDDSATargets)> {
     let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::wide_ecc_config());
     let targets = ed25519_circuit(&mut builder, msg_len_in_bits);
