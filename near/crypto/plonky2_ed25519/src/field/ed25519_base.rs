@@ -5,8 +5,8 @@ use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAss
 use std::vec::Vec;
 
 use itertools::Itertools;
-use num::{Integer, One};
 use num::bigint::BigUint;
+use num::{Integer, One};
 use plonky2::field::types::{Field, PrimeField, Sample};
 use serde::{Deserialize, Serialize};
 
@@ -67,8 +67,8 @@ impl Debug for Ed25519Base {
 impl Sample for Ed25519Base {
     #[inline]
     fn sample<R>(rng: &mut R) -> Self
-        where
-            R: rand::RngCore + ?Sized,
+    where
+        R: rand::RngCore + ?Sized,
     {
         use num::bigint::RandBigInt;
         Self::from_noncanonical_biguint(rng.gen_biguint_below(&Self::order()))
@@ -197,7 +197,7 @@ impl AddAssign for Ed25519Base {
 }
 
 impl Sum for Ed25519Base {
-    fn sum<I: Iterator<Item=Self>>(iter: I) -> Self {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Self::ZERO, |acc, x| acc + x)
     }
 }
@@ -239,7 +239,7 @@ impl MulAssign for Ed25519Base {
 
 impl Product for Ed25519Base {
     #[inline]
-    fn product<I: Iterator<Item=Self>>(iter: I) -> Self {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.reduce(|acc, x| acc * x).unwrap_or(Self::ONE)
     }
 }

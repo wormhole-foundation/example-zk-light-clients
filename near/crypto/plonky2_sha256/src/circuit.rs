@@ -95,7 +95,6 @@ fn shift32(y: usize) -> Vec<usize> {
     res
 }
 
-
 /// a ^ b ^ c = a+b+c - 2*a*b - 2*a*c - 2*b*c + 4*a*b*c
 ///          = a*( 1 - 2*b - 2*c + 4*b*c ) + b + c - 2*b*c
 ///          = a*( 1 - 2*b -2*c + 4*m ) + b + c - 2*m
@@ -231,7 +230,6 @@ fn ch<F: RichField + Extendable<D>, const D: usize>(
     }
     bits_to_u32_target(builder, res_bits)
 }
-
 
 ///maj = a&b ^ a&c ^ b&c
 /// = a*b   +  a*c  +  b*c  -  2*a*b*c

@@ -1,8 +1,8 @@
 use near_primitives::block_header::BlockHeader;
 use near_primitives::hash::CryptoHash;
 use near_primitives::types::AccountId;
-use near_primitives::views::{BlockHeaderView, validator_stake_view::ValidatorStakeView};
 use near_primitives::views::ChunkHeaderView;
+use near_primitives::views::{validator_stake_view::ValidatorStakeView, BlockHeaderView};
 use serde::{Deserialize, Serialize};
 
 /// Represents the type for signature & public key in bytes.

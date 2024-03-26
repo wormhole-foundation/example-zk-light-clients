@@ -5,16 +5,15 @@ use plonky2::hash::hash_types::RichField;
 use plonky2::iop::target::Target;
 use plonky2::iop::witness::{PartialWitness, WitnessWrite};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
+use plonky2::plonk::circuit_data::VerifierCircuitTarget;
 use plonky2::plonk::circuit_data::{
     CircuitConfig, CircuitData, CommonCircuitData, VerifierOnlyCircuitData,
 };
-use plonky2::plonk::circuit_data::VerifierCircuitTarget;
-use plonky2::plonk::config::{AlgebraicHasher, GenericConfig};
 use plonky2::plonk::config::Hasher;
+use plonky2::plonk::config::{AlgebraicHasher, GenericConfig};
 use plonky2::plonk::proof::ProofWithPublicInputs;
 use plonky2::plonk::prover::prove;
 use plonky2::util::timing::TimingTree;
-
 
 /// Recursively aggregates two proofs to one, verifies inner proofs and optionally set public inputs.
 pub fn recursive_proof<F, C, InnerC, const D: usize>(
@@ -30,12 +29,12 @@ pub fn recursive_proof<F, C, InnerC, const D: usize>(
     )>,
     public_inputs: Option<&[F]>,
 ) -> Result<(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)>
-    where
-        F: RichField + Extendable<D>,
-        C: GenericConfig<D, F=F>,
-        InnerC: GenericConfig<D, F=F>,
-        InnerC::Hasher: AlgebraicHasher<F>,
-        [(); C::Hasher::HASH_SIZE]:,
+where
+    F: RichField + Extendable<D>,
+    C: GenericConfig<D, F = F>,
+    InnerC: GenericConfig<D, F = F>,
+    InnerC::Hasher: AlgebraicHasher<F>,
+    [(); C::Hasher::HASH_SIZE]:,
 {
     let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
     let proof_with_pis_target_1 = builder.add_virtual_proof_with_pis(first_inner_common);
@@ -106,12 +105,12 @@ pub fn recursive_proof<F, C, InnerC, const D: usize>(
 }
 
 /// Aggregates recursively array of proofs.
-pub fn recursive_proofs<F: RichField + Extendable<D>, C: GenericConfig<D, F=F>, const D: usize>(
+pub fn recursive_proofs<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
     data_proofs: &[(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)],
     public_inputs: Option<&[F]>,
 ) -> Result<(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)>
-    where
-        C::Hasher: AlgebraicHasher<F>,
+where
+    C::Hasher: AlgebraicHasher<F>,
 {
     let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
     let mut pw = PartialWitness::new();
@@ -154,13 +153,17 @@ pub fn recursive_proofs<F: RichField + Extendable<D>, C: GenericConfig<D, F=F>, 
 }
 
 /// Aggregate recursively proofs reusing proving scheme.
-pub fn recursive_proofs_reuse_circuit<F: RichField + Extendable<D>, C: GenericConfig<D, F=F>, const D: usize>(
+pub fn recursive_proofs_reuse_circuit<
+    F: RichField + Extendable<D>,
+    C: GenericConfig<D, F = F>,
+    const D: usize,
+>(
     circuit: &CircuitData<F, C, D>,
     proofs: &[ProofWithPublicInputs<F, C, D>],
     public_inputs: Option<&[F]>,
 ) -> Result<(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)>
-    where
-        C::Hasher: AlgebraicHasher<F>,
+where
+    C::Hasher: AlgebraicHasher<F>,
 {
     let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
     let mut pw = PartialWitness::new();

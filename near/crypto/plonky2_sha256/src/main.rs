@@ -63,7 +63,7 @@ fn main() -> Result<()> {
     const MSG_SIZE: usize = 256;
 
     let mut msg: Vec<u8> = (0..MSG_SIZE).map(|_| random::<u8>() as u8).collect();
-    
+
     let mut hasher = Sha256::new();
     hasher.update(msg.clone());
     let hash = hasher.finalize();

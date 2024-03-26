@@ -1,0 +1,44 @@
+name: Hardhat
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'near/**'
+
+defaults:
+  run:
+    working-directory: ./near/contracts/hardhat
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: hardhat tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+
+      - name: Install yarn
+        run: npm install --global yarn
+
+      - name: Install packages
+        run: yarn
+
+      - name: Run check
+        run: npm_config_yes=true npm run check
+
+      - name: Run tests
+        run: npm_config_yes=true npm run test

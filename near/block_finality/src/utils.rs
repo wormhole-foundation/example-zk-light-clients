@@ -4,7 +4,7 @@ use near_crypto::PublicKey;
 use near_primitives::{
     block_header::BlockHeader,
     hash::CryptoHash,
-    types::{AccountId, validator_stake::ValidatorStake},
+    types::{validator_stake::ValidatorStake, AccountId},
     views::BlockHeaderView,
 };
 use reqwest::Client;
@@ -29,7 +29,10 @@ pub fn vec_u8_to_u32(data: &Vec<u8>) -> Vec<u32> {
     let capacity = data.len() / 4 as usize;
     let mut output = Vec::<u32>::with_capacity(capacity);
     for i in (0..data.len()).step_by(4) {
-        let value = ((data[i] as u32) << 24) | ((data[i + 1] as u32) << 16) | ((data[i + 2] as u32) << 8) | ((data[i + 3] as u32));
+        let value = ((data[i] as u32) << 24)
+            | ((data[i + 1] as u32) << 16)
+            | ((data[i + 2] as u32) << 8)
+            | (data[i + 3] as u32);
         output.push(value);
     }
     output

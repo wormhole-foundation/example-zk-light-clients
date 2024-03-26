@@ -4,7 +4,10 @@ use plonky2::field::types::PrimeField64;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::witness::Witness;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
-use plonky2_u32::gadgets::{arithmetic_u32::{CircuitBuilderU32, U32Target}, interleaved_u32::CircuitBuilderB32};
+use plonky2_u32::gadgets::{
+    arithmetic_u32::{CircuitBuilderU32, U32Target},
+    interleaved_u32::CircuitBuilderB32,
+};
 
 use crate::types::{HashInputTarget, HashOutputTarget, U64Target, WitnessHash};
 
@@ -95,7 +98,10 @@ fn sigma<F: RichField + Extendable<D>, const D: usize>(
     let shft_lo = builder.not_u32(shft_and);
     // xor
     let xor_lo_hi = builder.unsafe_xor_many_u64(&[x, y, [shft_lo, shft_high]]);
-    U64Target { hi: xor_lo_hi[1], lo: xor_lo_hi[0] }
+    U64Target {
+        hi: xor_lo_hi[1],
+        lo: xor_lo_hi[0],
+    }
 }
 
 /// (a rrot r1) xor (a rrot r2) xor (a rrot r3)
@@ -112,7 +118,10 @@ fn big_sigma<F: RichField + Extendable<D>, const D: usize>(
     let z = builder.lrot_u64(&[a.lo, a.hi], 64 - r3);
     // xor
     let xor_lo_hi = builder.unsafe_xor_many_u64(&[x, y, z]);
-    U64Target { hi: xor_lo_hi[1], lo: xor_lo_hi[0] }
+    U64Target {
+        hi: xor_lo_hi[1],
+        lo: xor_lo_hi[0],
+    }
 }
 
 /// (e and f) xor ((not e) and g)
@@ -129,7 +138,10 @@ fn ch<F: RichField + Extendable<D>, const D: usize>(
     let eg = builder.and_u64(&not_e, &[g.lo, g.hi]);
     // xor
     let xor_lo_hi = builder.xor_u64(&ef, &eg);
-    U64Target { hi: xor_lo_hi[1], lo: xor_lo_hi[0] }
+    U64Target {
+        hi: xor_lo_hi[1],
+        lo: xor_lo_hi[0],
+    }
 }
 
 /// (a and b) xor (a and c) xor (b and c)
@@ -147,17 +159,23 @@ fn maj<F: RichField + Extendable<D>, const D: usize>(
     let bc = builder.and_u64(&[b.lo, b.hi], &[c.lo, c.hi]);
     // xor
     let xor_lo_hi = builder.unsafe_xor_many_u64(&[ab, ac, bc]);
-    U64Target { hi: xor_lo_hi[1], lo: xor_lo_hi[0] }
+    U64Target {
+        hi: xor_lo_hi[1],
+        lo: xor_lo_hi[0],
+    }
 }
 
 impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderHashSha2<F, D>
-for CircuitBuilder<F, D>
+    for CircuitBuilder<F, D>
 {
     fn add_u64(&mut self, a: U64Target, b: U64Target) -> U64Target {
         let zero = self.zero_u32();
         let (output_lo, carry) = self.add_u32s_with_carry(&[a.lo, b.lo], zero);
         let (output_hi, _) = self.add_u32s_with_carry(&[a.hi, b.hi], carry);
-        U64Target { hi: output_hi, lo: output_lo }
+        U64Target {
+            hi: output_hi,
+            lo: output_lo,
+        }
     }
 
     fn add_many_u64(&mut self, values: &[U64Target]) -> U64Target {
@@ -165,14 +183,20 @@ for CircuitBuilder<F, D>
         let hi: Vec<U32Target> = values.iter().map(|x| x.hi).collect();
         let (lo_sum, carry) = self.add_many_u32(&lo);
         let (hi_sum, _) = self.add_many_u32(&[hi, [carry].to_vec()].concat());
-        U64Target { hi: hi_sum, lo: lo_sum }
+        U64Target {
+            hi: hi_sum,
+            lo: lo_sum,
+        }
     }
 
     // https://en.wikipedia.org/wiki/SHA-2#Pseudocode
     fn hash_sha512(&mut self, hash: &HashInputTarget) -> Vec<U64Target> {
         let mut output = vec![];
         for _ in 0..8 {
-            output.push(U64Target { hi: self.add_virtual_u32_target(), lo: self.add_virtual_u32_target() });
+            output.push(U64Target {
+                hi: self.add_virtual_u32_target(),
+                lo: self.add_virtual_u32_target(),
+            });
         }
         let input = hash.input.clone();
         let input_bits = hash.input_bits;
@@ -183,14 +207,20 @@ for CircuitBuilder<F, D>
         // Initialize hash values:
         // (first 64 bits of the fractional parts of the square roots of the first 8 primes)
         for item in &H512_512 {
-            state.push(U64Target { hi: self.constant_u32((item >> 32) as u32), lo: self.constant_u32((item & 0xFFFFFFFF) as u32) });
+            state.push(U64Target {
+                hi: self.constant_u32((item >> 32) as u32),
+                lo: self.constant_u32((item & 0xFFFFFFFF) as u32),
+            });
         }
 
         // Initialize array of round constants:
         // (first 64 bits of the fractional parts of the cube roots of the first 80 primes)
         let mut k512 = Vec::new();
         for item in &K64 {
-            k512.push(U64Target { hi: self.constant_u32((item >> 32) as u32), lo: self.constant_u32((item & 0xFFFFFFFF) as u32) });
+            k512.push(U64Target {
+                hi: self.constant_u32((item >> 32) as u32),
+                lo: self.constant_u32((item & 0xFFFFFFFF) as u32),
+            });
         }
 
         // Pre-processing (Padding)
@@ -231,7 +261,6 @@ for CircuitBuilder<F, D>
                 b = a;
                 a = self.add_u64(temp1, temp2);
             }
-
 
             state[0] = self.add_u64(state[0], a);
             state[1] = self.add_u64(state[1], b);

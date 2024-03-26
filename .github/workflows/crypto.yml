@@ -3,20 +3,25 @@ name: Crypto
 on:
   push:
     branches:
-      - main
-      - master
+      - "main"
   pull_request:
     branches:
       - main
+    paths:
+      - 'near/**'
 
 env:
-  RUST_VERSION_NIGHTLY: nightly-2023-10-24
+  RUST_VERSION_NIGHTLY: nightly-2024-01-25
   CARGO_TERM_COLOR: always
 
-jobs:
-  lint-rust:
-    runs-on: ubuntu-latest
+defaults:
+  run:
+    working-directory: ./near
 
+jobs:
+  lints:
+    name: crypto
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,15 +32,11 @@ jobs:
           toolchain: ${{ env.RUST_VERSION_NIGHTLY }}
           components: clippy
 
+      - name: Set default Rust toolchain
+        run: rustup default ${{ env.RUST_VERSION_NIGHTLY }}
+
       - name: Run clippy
         run: cargo clippy --all-targets --all-features
-
-  lint-generic:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
       - name: Install other dependencies
         run: sudo apt-get install moreutils dos2unix
@@ -45,4 +46,4 @@ jobs:
           find . -name '*.rs' -exec isutf8 {} +
 
       - name: Check line endings
-        run: bash .github/workflows/scripts/check_line_endings.sh
+        run: bash ../.github/workflows/scripts/check_line_endings.sh
