@@ -102,12 +102,15 @@ fn rotate64(y: usize) -> Vec<usize> {
 /// Assume: 0 at index 64
 fn shift64(y: usize) -> Vec<usize> {
     let mut res = Vec::new();
-    res.extend(std::iter::repeat(64).take(64 - y));
+    for _ in 64 - y..64 {
+        res.push(64);
+    }
     for i in 0..64 - y {
         res.push(i);
     }
     res
 }
+
 
 ///a ^ b ^ c = a+b+c - 2*a*b - 2*a*c - 2*b*c + 4*a*b*c
 ///          = a*( 1 - 2*b - 2*c + 4*b*c ) + b + c - 2*b*c
@@ -221,6 +224,7 @@ fn sigma1<F: RichField + Extendable<D>, const D: usize>(
     bits_to_biguint_target(builder, res_bits)
 }
 
+
 ///ch = a&b ^ (!a)&c
 ///  = a*(b-c) + c
 ///
@@ -242,6 +246,7 @@ fn ch<F: RichField + Extendable<D>, const D: usize>(
     }
     bits_to_biguint_target(builder, res_bits)
 }
+
 
 ///maj = a&b ^ a&c ^ b&c
 ///    = a*b   +  a*c  +  b*c  -  2*a*b*c
@@ -333,7 +338,7 @@ pub fn sha512_circuit<F: RichField + Extendable<D>, const D: usize>(
     }
 
     let mut k512 = Vec::new();
-    for item in &K64 {
+    for item   in &K64 {
         k512.push(builder.constant_biguint(&BigUint::from_u64(*item).unwrap()));
     }
 
@@ -353,7 +358,7 @@ pub fn sha512_circuit<F: RichField + Extendable<D>, const D: usize>(
             let u32_0 = builder.le_sum(message[index..index + 32].iter().rev());
             let u32_1 = builder.le_sum(message[index + 32..index + 64].iter().rev());
 
-            let u32_targets = vec![U32Target(u32_1), U32Target(u32_0)];
+            let u32_targets = vec![U32Target(u32_1), U32Target(u32_0) ];
             let big_int = BigUintTarget { limbs: u32_targets };
 
             x.push(big_int);
@@ -420,7 +425,7 @@ pub fn sha512_circuit<F: RichField + Extendable<D>, const D: usize>(
         state[7] = add_biguint_2limbs(builder, &state[7], &h);
     }
 
-    for state_item in state.iter().take(8) {
+    for state_item in state.iter().take(8){
         for j in (0..2).rev() {
             let bit_targets = builder.split_le_base::<2>(state_item.get_limb(j).0, 32);
             for k in (0..32).rev() {

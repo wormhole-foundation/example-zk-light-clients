@@ -104,7 +104,7 @@ services:
       - common-network
 
   gnark_wrapper:
-    image: zpokendev/zk-lite-client_gnark-wrapper:latest
+    image: zpokendev/zk-lite-client_gnark-wrapper_prebuilt:latest
     deploy:
       mode: replicated
       replicas: 1

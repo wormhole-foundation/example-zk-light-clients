@@ -17,7 +17,7 @@ pub async fn main() -> Result<()> {
 
     let next_hash = &args[3];
 
-    let _ = try_init_from_env(Env::default().filter_or(DEFAULT_FILTER_ENV, "info"));
+    let _ = try_init_from_env(Env::default().filter_or(DEFAULT_FILTER_ENV, "info, debug"));
     let mut timing = TimingTree::new("To prove current block", Level::Info);
     prove_current_epoch_block(prev_hash, hash, next_hash, None, &mut timing).await?;
     timing.print();

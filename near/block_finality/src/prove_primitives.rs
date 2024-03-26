@@ -1,8 +1,6 @@
 use anyhow::Result;
 use itertools::Itertools;
 use log::Level;
-use plonky2::iop::target::{BoolTarget, Target};
-use plonky2::plonk::config::Hasher;
 use plonky2::{
     hash::hash_types::RichField,
     iop::witness::{PartialWitness, WitnessWrite},
@@ -14,6 +12,8 @@ use plonky2::{
     },
     util::timing::TimingTree,
 };
+use plonky2::iop::target::{BoolTarget, Target};
+use plonky2::plonk::config::Hasher;
 use plonky2_field::extension::Extendable;
 
 use plonky2_sha256_u32::sha256::{CircuitBuilderHashSha2, WitnessHashSha2};
@@ -31,7 +31,7 @@ use plonky2_sha256_u32::types::CircuitBuilderHash;
 /// - `CircuitData<F, C, D>`: The circuit data generated during the proof generation process.
 /// - `ProofWithPublicInputs<F, C, D>`: The proof along with an array of bytes as public inputs.
 ///
-pub fn prove_eq_array<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+pub fn prove_eq_array<F: RichField + Extendable<D>, C: GenericConfig<D, F=F>, const D: usize>(
     array1: &[u8],
     array2: &[u8],
 ) -> Result<(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)> {
@@ -81,12 +81,12 @@ pub fn prove_eq_array<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, 
 /// - `CircuitData<F, C, D>`: The circuit data generated during the proof generation process.
 /// - `ProofWithPublicInputs<F, C, D>`: The proof along with computed stake value as public inputs.
 ///
-pub fn two_thirds<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
+pub fn two_thirds<F: RichField + Extendable<D>, C: GenericConfig<D, F=F>, const D: usize>(
     stake1: &[u8],
     stake2: &[u8],
 ) -> Result<(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)>
-where
-    C::Hasher: AlgebraicHasher<F>,
+    where
+        C::Hasher: AlgebraicHasher<F>,
 {
     let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
     let stake1_values: Vec<F> = stake1.iter().map(|x| F::from_canonical_u8(*x)).collect();
@@ -100,7 +100,7 @@ where
     for (t, v) in stake2_targets.iter().zip_eq(stake2_values) {
         pw.set_target(*t, v);
     }
-    /// compute 3 * stake1
+    // compute 3 * stake1
     let mut stake1_3_targets: Vec<Target> = builder.add_virtual_targets(stake1_targets.len());
     let three = builder.constant(F::from_canonical_u8(3));
     let mut c = builder.zero();
@@ -111,7 +111,7 @@ where
         c = builder.le_sum(bits[8..10].iter());
     }
     stake1_3_targets.push(c);
-    /// compute 2 * stake2
+    // compute 2 * stake2
     let two = builder.two();
     let mut c = builder.zero();
     for stake_target in &mut stake2_targets {
@@ -127,7 +127,7 @@ where
     for stake in stake2_targets.iter().skip(stake1_3_targets.len()) {
         builder.connect(*stake, zero);
     }
-    /// compare: stake1 is more than 2/3 of stake2
+    // compare: stake1 is more than 2/3 of stake2
     let mut res: Vec<Target> = builder.add_virtual_targets(stake1_3_targets.len());
     let mut i = (stake1_3_targets.len() - 1) as isize;
     let mut prev = (BoolTarget::new_unsafe(zero), zero);
@@ -191,6 +191,7 @@ where
     timing.print();
     Ok((data, proof))
 }
+
 
 #[cfg(test)]
 mod tests {
