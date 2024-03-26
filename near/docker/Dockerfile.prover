@@ -1,5 +1,5 @@
 FROM rust:latest as builder
-ARG NIGHTLY_VERSION=2023-10-24
+ARG NIGHTLY_VERSION=2024-03-24
 
 RUN rustup toolchain install nightly-${NIGHTLY_VERSION}
 
