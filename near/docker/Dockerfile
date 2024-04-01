@@ -5,8 +5,8 @@ RUN rustup toolchain install nightly-${NIGHTLY_VERSION}
 
 WORKDIR .
 
-# Copy the Cargo.toml and Cargo.lock files to the working directory
-COPY Cargo.toml Cargo.lock ./
+# Copy the Cargo.toml files to the working directory
+COPY Cargo.toml ./
 
 # Copy the source code into the container
 COPY ./block_finality ./block_finality

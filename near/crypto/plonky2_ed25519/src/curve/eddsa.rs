@@ -1,5 +1,4 @@
 use curve25519_dalek::edwards::CompressedEdwardsY;
-use curve25519_dalek::EdwardsPoint;
 use num::{BigUint, Integer};
 use plonky2::field::types::Field;
 use serde::{Deserialize, Serialize};

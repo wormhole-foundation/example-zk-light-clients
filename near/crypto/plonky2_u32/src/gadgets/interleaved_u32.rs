@@ -1,6 +1,5 @@
 use alloc::vec::Vec;
 use plonky2::field::extension::Extendable;
-use plonky2::field::packed::PackedField;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::target::{BoolTarget, Target};
 use plonky2::plonk::circuit_builder::CircuitBuilder;
@@ -8,8 +7,6 @@ use crate::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
 use crate::gates::interleave_u32::U32InterleaveGate;
 use crate::gates::uninterleave_to_b32::UninterleaveToB32Gate;
 use crate::gates::uninterleave_to_u32::UninterleaveToU32Gate;
-
-
 
 pub struct B32Target(pub Target);
 

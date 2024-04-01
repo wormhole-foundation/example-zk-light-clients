@@ -36,5 +36,5 @@ USE_BIT_DECOMPOSITION_RANGE_CHECK=true go run main.go web-api --dir testdata/tes
 
 | Proof System | Compile | Proving  | Verification | Proof size |
 |--------------|---------|----------|--------------|------------|
-| Groth16      | 17 min  | 30 sec   | 0.0011       | 256 bytes  |
-| Plonk        | 17 min  | 2.30 min | 0.0020       | 928 bytes  |
+| Groth16      | 17 min  | 30 sec   | 0.0011 sec   | 256 bytes  |
+| Plonk        | 17 min  | 2.30 min | 0.0020 sec   | 928 bytes  |

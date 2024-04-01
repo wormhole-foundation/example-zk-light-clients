@@ -1,6 +1,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 use log::Level;
+use plonky2::iop::target::{BoolTarget, Target};
 use plonky2::{
     hash::hash_types::RichField,
     iop::witness::{PartialWitness, WitnessWrite},
@@ -12,12 +13,7 @@ use plonky2::{
     },
     util::timing::TimingTree,
 };
-use plonky2::iop::target::{BoolTarget, Target};
-use plonky2::plonk::config::Hasher;
 use plonky2_field::extension::Extendable;
-
-use plonky2_sha256_u32::sha256::{CircuitBuilderHashSha2, WitnessHashSha2};
-use plonky2_sha256_u32::types::CircuitBuilderHash;
 
 /// Proves that two arrays are equal.
 /// # Arguments
@@ -31,7 +27,7 @@ use plonky2_sha256_u32::types::CircuitBuilderHash;
 /// - `CircuitData<F, C, D>`: The circuit data generated during the proof generation process.
 /// - `ProofWithPublicInputs<F, C, D>`: The proof along with an array of bytes as public inputs.
 ///
-pub fn prove_eq_array<F: RichField + Extendable<D>, C: GenericConfig<D, F=F>, const D: usize>(
+pub fn prove_eq_array<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
     array1: &[u8],
     array2: &[u8],
 ) -> Result<(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)> {
@@ -81,12 +77,12 @@ pub fn prove_eq_array<F: RichField + Extendable<D>, C: GenericConfig<D, F=F>, co
 /// - `CircuitData<F, C, D>`: The circuit data generated during the proof generation process.
 /// - `ProofWithPublicInputs<F, C, D>`: The proof along with computed stake value as public inputs.
 ///
-pub fn two_thirds<F: RichField + Extendable<D>, C: GenericConfig<D, F=F>, const D: usize>(
+pub fn two_thirds<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
     stake1: &[u8],
     stake2: &[u8],
 ) -> Result<(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)>
-    where
-        C::Hasher: AlgebraicHasher<F>,
+where
+    C::Hasher: AlgebraicHasher<F>,
 {
     let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
     let stake1_values: Vec<F> = stake1.iter().map(|x| F::from_canonical_u8(*x)).collect();
@@ -191,7 +187,6 @@ pub fn two_thirds<F: RichField + Extendable<D>, C: GenericConfig<D, F=F>, const 
     timing.print();
     Ok((data, proof))
 }
-
 
 #[cfg(test)]
 mod tests {

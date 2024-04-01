@@ -24,7 +24,7 @@ func compile(cmd *cobra.Command, args []string) {
 	proofWithPis, _ := variables.DeserializeProofWithPublicInputs(
 		types.ReadProofWithPublicInputs(fBaseDir + "/proof_with_public_inputs.json"),
 	)
-
+	
 	commonCircuitData := types.ReadCommonCircuitData(fBaseDir + "/common_circuit_data.json")
 
 	circuit := verifier.CircuitFixed{
@@ -36,7 +36,7 @@ func compile(cmd *cobra.Command, args []string) {
 	}
 	var builder frontend.NewBuilder = r1cs.NewBuilder
 	r1cs, _ := frontend.Compile(ecc.BN254.ScalarField(), builder, &circuit)
-
+	
 	pk, vk, _ := groth16.Setup(r1cs)
 
 	_ = verifier.SaveVerifierCircuitGroth("api-build", r1cs, pk, vk)

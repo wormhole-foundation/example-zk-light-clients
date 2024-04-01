@@ -1,9 +1,9 @@
 import Web3 from 'web3';
-import { Transaction, TxData } from 'ethereumjs-tx';
 
-const web3 = new Web3('https://goerli.infura.io/v3/f4c46e6e91514ef38f4b4c7375917003');
+const web3 = new Web3(process.env.SEPOLIA_RPC || 'https://rpc2.sepolia.org');
 
-const contractAddress = '0x63F526335DB8458c76914BdBD88F0A97E1B6b157';
+const contractAddress =
+  process.env.NEAR_BLOCK_VERIFIER_CONTRACT || '0xce5845372e615Cbb46EFCc76c21051932BD8A717';
 const contractABI = [
   {
     inputs: [{ internalType: 'address', name: 'verifier', type: 'address' }],
@@ -126,24 +126,19 @@ const privateKey = process.env.PRIVATE_KEY as string;
 const web3Account = web3.eth.accounts.privateKeyToAccount('0x' + privateKey);
 
 export const executeContractCall = async (input: string[], proof: string[]) => {
-  const txObject: TxData = {
-    nonce: '0x' + (await web3.eth.getTransactionCount(web3Account.address)).toString(16),
-    to: contractAddress,
-    gasPrice: web3.utils.toHex(await web3.eth.getGasPrice()),
-    gasLimit: web3.utils.toHex(300000),
-    value: '0x0',
-    data: contract.methods.verifyAndSaveProof(input, proof).encodeABI(),
-  };
-
-  const tx = new Transaction(txObject, { chain: 'goerli' });
-
-  const privateKeyBuffer = Buffer.from(privateKey, 'hex');
-  tx.sign(privateKeyBuffer);
-
-  const serializedTx = tx.serialize().toString('hex');
-
+  const signedTx = await web3.eth.accounts.signTransaction(
+    {
+      from: web3Account.address,
+      to: contractAddress,
+      gas: 1000000,
+      gasPrice: 1000000000,
+      nonce: '0x' + (await web3.eth.getTransactionCount(web3Account.address)).toString(16),
+      data: contract.methods.verifyAndSaveProof(input, proof).encodeABI(),
+    },
+    privateKey,
+  );
   try {
-    const receipt = await web3.eth.sendSignedTransaction('0x' + serializedTx);
+    const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
     console.log('Transaction receipt:', receipt);
   } catch (error) {
     console.error('Transaction error:', error);

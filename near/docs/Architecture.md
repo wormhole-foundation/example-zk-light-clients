@@ -579,23 +579,23 @@ The implementation is based on the [Plonky2](https://github.com/0xPolygonZero/pl
 
 The scheme proves an arbitrary block using data of the previous epoch block, current block and next one. The current block contains all data that has to be proven: hash, signatures of the validators, who signed the previous block (approvals), chunk data, gas etc. The next block contains the signatures of the validators, who signed the current block. The public keys to these signatures are stored in a validator list that is provided to the scheme separately. Each block also stores a hash of the validator list called next bp hash. A next bp hash for a certain block is in the previous epoch block.
 
-![Near signature verification](/schemes/1_link_blocks_to_prove_signatures.png)
+![Near signature verification](/near/schemes/1_link_blocks_to_prove_signatures.png)
 
 So, to check all the signatures for the current block we need three blocks: the current one to choose the data that was signed, the next one to provide the signatures and the block of the previous epoch to get public keys.
 
-![Near block structure](/schemes/2_block_data.png)
+![Near block structure](/near/schemes/2_block_data.png)
 
 The scheme checks all data in a block: hash of the block, signatures, sum of stakes (>= ⅔), next bp hash (next bp hash = hash(validator list)), generates proof for each of the steps and aggregate all proofs into one.
 
 Since all blocks in Near rely on the blocks from the previous epoch, it is necessary to prove computational integrity of the initial block, that we call “genesis”. It is not a genesis of a blockchain, it is just a starting point of the proving process, so it has to be valid and accepted by a community as reliable data. This initial block has only one entity to prove, i.e. hash of the block, signatures cannot be verified because there is neither a list of validators nor a hash from the list of validators. For all next blocks the proving scheme contains verification of all entities.
 The scheme also verifies the proof of the previous epoch block, on which the current one relies on, and aggregates it with the resulting proof of the current block to chain all proofs together.
 
-![Scheme of linked proofs](/schemes/4_scheme_of_linked_proofs.png)
+![Scheme of linked proofs](/near/schemes/4_scheme_of_linked_proofs.png)
 
 Since every next block proof relies on the epoch proof of the hash, we additionally store proof of hashing to just call it while proving current block data, instead of proving two blocks.
 
-![Linked proofs](/schemes/5_linked_proofs.png)
+![Linked proofs](/near/schemes/5_linked_proofs.png)
 
 > [!TIP]
-> Check details at [Proving_scheme.md](/docs/Proving_scheme.md)
+> Check details at [Proving_scheme.md](/near/docs/Proving_scheme.md)
 

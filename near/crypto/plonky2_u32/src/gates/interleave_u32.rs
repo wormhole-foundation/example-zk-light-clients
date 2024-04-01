@@ -1,7 +1,6 @@
 use alloc::{format, vec};
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::hash::Hasher;
 use core::ops::Range;
 
 use plonky2::field::extension::Extendable;

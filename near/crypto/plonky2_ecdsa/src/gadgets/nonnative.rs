@@ -16,7 +16,7 @@ use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::util::ceil_div_usize;
 use plonky2_u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
 use plonky2_u32::gadgets::range_check::range_check_u32_circuit;
-use plonky2_u32::witness::{GeneratedValuesU32, WitnessU32};
+use plonky2_u32::witness::{GeneratedValuesU32};
 use crate::serialization::WriteBigUintTarget;
 use crate::serialization::ReadBigUintTarget;
 use crate::gadgets::biguint::{

@@ -38,3 +38,5 @@ opt-level = 3
 
 [profile.test]
 opt-level = 0
+
+

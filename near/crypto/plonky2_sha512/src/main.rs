@@ -57,13 +57,9 @@ fn main() -> Result<()> {
     builder.filter_level(LevelFilter::Info);
     builder.try_init()?;
 
-    const D: usize = 2;
-    type C = PoseidonGoldilocksConfig;
-    type F = <C as GenericConfig<D>>::F;
-
     const MSG_SIZE: usize = 128;
 
-    let mut msg: Vec<u8> = (0..MSG_SIZE).map(|_| random::<u8>() as u8).collect();
+    let msg: Vec<u8> = (0..MSG_SIZE).map(|_| random::<u8>() as u8).collect();
 
     let mut hasher = Sha512::new();
     hasher.update(msg.clone());

@@ -12,9 +12,6 @@ use plonky2::plonk::circuit_data::CircuitData;
 use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 use plonky2::timed;
 use plonky2::util::timing::TimingTree;
-use serde::ser::SerializeSeq;
-use serde::Deserializer;
-use serde::Serializer;
 use serde_json::json;
 
 use block_finality::prove_crypto::{ed25519_proof, get_ed25519_targets};
@@ -29,7 +26,7 @@ type F = <C as GenericConfig<D>>::F;
 #[tokio::main]
 async fn main() -> Result<(), async_nats::Error> {
     let _ = try_init_from_env(Env::default().filter_or(DEFAULT_FILTER_ENV, "info,debug"));
-    let nats_url = env::var("NATS_URL").unwrap_or_else(|_| "nats://195.189.60.190:4222".into());
+    let nats_url = env::var("NATS_URL").expect("NATS_URL parameter missed");
     info!("Nats URL: {}", nats_url);
     // Cached proving schema and targets in order to reuse depending on message length
     let mut circuit_state: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> = HashMap::new();

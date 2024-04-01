@@ -2,7 +2,6 @@ use core::fmt::{self, Debug, Display, Formatter};
 use core::hash::{Hash, Hasher};
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
-use std::vec::Vec;
 
 use itertools::Itertools;
 use num::bigint::BigUint;

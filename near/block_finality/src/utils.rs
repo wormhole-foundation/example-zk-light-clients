@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read, num::ParseIntError, str::FromStr};
+use std::{env, fs::File, io::Read, num::ParseIntError, str::FromStr};
 
 use near_crypto::PublicKey;
 use near_primitives::{
@@ -100,7 +100,7 @@ pub fn load_block_header(path: &str) -> Result<(CryptoHash, BlockHeader), anyhow
 ///
 /// Returns an error if there are any issues with the RPC request or response handling.
 pub async fn load_block_from_rpc(hash: &str) -> Result<(CryptoHash, BlockHeader), anyhow::Error> {
-    let rpc_url = "https://compatible-light-crater.near-mainnet.quiknode.pro/332447effce5b1cec9f320e24bc52cfa62882e1a/";
+    let rpc_url = env::var("NEAR_RPC").expect("NEAR_PRC parameter missed");
 
     let client = Client::builder()
         .danger_accept_invalid_certs(true)
@@ -185,7 +185,7 @@ pub fn load_validators(path: &str) -> Result<Vec<ValidatorStake>, anyhow::Error>
 pub async fn load_validators_from_rpc(
     block_hash: &str,
 ) -> Result<Vec<ValidatorStake>, anyhow::Error> {
-    let rpc_url = "https://compatible-light-crater.near-mainnet.quiknode.pro/332447effce5b1cec9f320e24bc52cfa62882e1a/";
+    let rpc_url = env::var("NEAR_RPC").expect("NEAR_PRC parameter missed");
 
     let client = Client::builder()
         .danger_accept_invalid_certs(true)

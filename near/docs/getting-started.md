@@ -81,17 +81,28 @@ This endpoint retrieves the status of a previously requested proof generation ta
 
  1. Clone repo:
  ```bash
-git clone git@github.com:ZpokenWeb3/zk-client-private.git
+git clone https://github.com/wormhole-foundation/example-zk-light-clients.git
 ```
  2. Change directory:
  ```bash
- cd ./zk-client-private
+ cd ./example-zk-light-clients/near/
  ```
  3. Pull docker images:
  ```bash
  docker compose pull
  ```
- 4. Run applications:
+ 4. Set url to nats server & your Ethereum private key for `http_service`:
+ ```bash
+ export NATS_URL=nats://127.0.0.1:4222
+ export PRIVATE_KEY=9c6293889cac472edd54fc057cc47999a1d9c9c42a009731908a2a821a3ec5da
+ ```
+5. Set verifier contract address and rpc urls for near and sepolia testnet
+```bash
+export NEAR_BLOCK_VERIFIER_CONTRACT=0xce5845372e615Cbb46EFCc76c21051932BD8A717
+export SEPOLIA_RPC=https://rpc2.sepolia.org
+export NEAR_RPC=https://rpc.mainnet.near.org
+```
+6. Run applications:
  ```bash
  docker compose up -d
  ```
@@ -101,11 +112,11 @@ git clone git@github.com:ZpokenWeb3/zk-client-private.git
 
 1. Clone repo:
  ```bash
-git clone git@github.com:ZpokenWeb3/zk-client-private.git
+git clone https://github.com/wormhole-foundation/example-zk-light-clients.git
 ```
  2. Change directory:
  ```bash
- cd ./zk-client-private
+ cd ./example-zk-light-clients/near/
  ```
  3. Init docker swarm:
  ```bash
@@ -115,8 +126,19 @@ docker swarm init --advertise-addr <management_node_ip>
  ```bash
  docker swarm join --token <token> <management_node_ip>:2377
  ```
- 5. Change the value of the `replicas` parameter in `docker-stack.yml` for `sign-prover` service to 2 replicas per worker node not considering the management node.
- 6. Deploy stack
+ 5. Change the value of the `replicas` parameter in `docker-stack.yml` for `sign_prover` service to 2 replicas per worker node not considering the management node.
+ 6. Set url to nats server & your Etherium private key for `http_service`:
+ ```bash
+ export NATS_URL=nats://127.0.0.1:4222
+ export PRIVATE_KEY=9c6293889cac472edd54fc057cc47999a1d9c9c42a009731908a2a821a3ec5da
+ ```
+ 7. Set verifier contract address and rpc urls for near and sepolia testnet
+```bash
+export NEAR_BLOCK_VERIFIER_CONTRACT=0xce5845372e615Cbb46EFCc76c21051932BD8A717
+export SEPOLIA_RPC=https://rpc2.sepolia.org
+export NEAR_RPC=https://rpc.mainnet.near.org
+```
+ 8. Deploy stack
  ```bash
 docker stack deploy --compose-file docker-stack.yml zk-lite-client
  ```

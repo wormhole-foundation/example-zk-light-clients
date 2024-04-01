@@ -4,7 +4,6 @@ use std::time::Duration;
 use anyhow::Error;
 use derive_more::Constructor;
 use env_logger::{try_init_from_env, Env, DEFAULT_FILTER_ENV};
-use futures::StreamExt;
 use log::{info, Level};
 use plonky2::util::timing::TimingTree;
 use serde::{Deserialize, Serialize};
@@ -27,8 +26,7 @@ pub struct ProvingResult {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let _ = try_init_from_env(Env::default().filter_or(DEFAULT_FILTER_ENV, "info,debug"));
-    let nats_url =
-        env::var("NATS_URL").unwrap_or_else(|_| "nats://195.189.60.190:4222".to_string());
+    let nats_url = env::var("NATS_URL").expect("NATS_URL parameter missed");
     info!("Nats URL: {}", nats_url);
     let client = nats::Options::new()
         .reconnect_delay_callback(|attempts| {

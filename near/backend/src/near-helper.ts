@@ -1,37 +1,33 @@
 import { decode } from 'bs58';
 import { ProvingTask } from './types';
 
+const nearRpc = process.env.NEAR_RPC || 'https://rpc.mainnet.near.org';
+
 export const fetchBlockByHashFromNear = async (hash: string) => {
-  const response = await fetch(
-    'https://compatible-light-crater.near-mainnet.quiknode.pro/332447effce5b1cec9f320e24bc52cfa62882e1a/',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 'dontcare',
-        method: 'block',
-        params: { block_id: hash },
-      }),
-    },
-  );
+  const response = await fetch(nearRpc, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'dontcare',
+      method: 'block',
+      params: { block_id: hash },
+    }),
+  });
   return JSON.parse(await response.clone().text());
 };
 
 export const fetchBlockByHeightFromNear = async (height: number) => {
-  const response = await fetch(
-    'https://compatible-light-crater.near-mainnet.quiknode.pro/332447effce5b1cec9f320e24bc52cfa62882e1a/',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 'dontcare',
-        method: 'block',
-        params: { block_id: height },
-      }),
-    },
-  );
+  const response = await fetch(nearRpc, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'dontcare',
+      method: 'block',
+      params: { block_id: height },
+    }),
+  });
   return JSON.parse(await response.clone().text());
 };
 
