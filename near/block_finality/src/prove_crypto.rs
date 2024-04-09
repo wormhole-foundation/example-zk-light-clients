@@ -154,7 +154,7 @@ where
 /// let output = hex::decode(hash).unwrap();
 ///
 /// // Compute SHA-256 proof
-/// let (circuit_data, proof) = sha256_proof_u32::<F, C, D>(&input, &output)?;;
+/// let (circuit_data, proof) = sha256_proof_u32::<F, C, D>(&input, &output).expect("Error proving sha256 hash");
 /// ```
 pub fn sha256_proof_u32<
     F: RichField + Extendable<D>,
@@ -266,3 +266,26 @@ pub fn get_ed25519_targets<
     let circuit_data = builder.build::<C>();
     Ok((circuit_data, targets))
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//
+//     #[test]
+//     fn test_prove_sub_hashes_u32_aggregation_correctness() -> Result<()> {}
+//
+//     #[test]
+//     fn test_sha256_proof_u32_computation_with_public_inputs() -> Result<()> {}
+//
+//     #[test]
+//     fn test_get_ed25519_circuit_targets_caching() -> Result<()> {}
+//
+//     #[test]
+//     fn test_ed25519_proof_reuse_circuit_reusability() -> Result<()> {}
+//
+//     #[test]
+//     fn test_ed25519_proof_computation_for_specific_message_signature_and_public_key() -> Result<()> {}
+//
+//     #[test]
+//     fn test_get_ed25519_targets_computation_based_on_message_length() -> Result<()> {}
+// }

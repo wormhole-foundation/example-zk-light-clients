@@ -899,3 +899,408 @@ where
 
     Ok(((cb_hash_data, cb_hash_proof), (agg_data, agg_proof)))
 }
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+    use log::{info, Level};
+    use near_crypto::{PublicKey, Signature};
+    use near_primitives::block_header::{Approval, ApprovalInner};
+    use near_primitives::borsh;
+    use near_primitives::borsh::{BorshDeserialize, BorshSerialize};
+    use near_primitives::hash::{hash, CryptoHash};
+    use near_primitives::types::MerkleHash;
+    use serde::{Deserializer, Serializer};
+    use sha2::Digest;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
+    use crate::utils::{load_block_header, load_validators};
+    use super::*;
+
+    #[test]
+    fn test_compute_hash_for_block() -> Result<()> {
+        let path = "../data/block_header.json".to_string();
+        let (block_hash, block_header) = load_block_header(&path)?;
+        let computed_block_hash = compute_hash(*block_header.prev_hash(), &block_header.inner_lite_bytes(), &block_header.inner_rest_bytes());
+        assert_eq!(computed_block_hash, block_hash);
+        Ok(())
+    }
+
+    #[test]
+    fn test_combine_hash_of_two_merkle_hashes() -> Result<()> {
+        let path = "../data/block_header.json".to_string();
+        let (block_hash, block_header) = load_block_header(&path)?;
+        let hash_lite = hash(&block_header.inner_lite_bytes());
+        let hash_rest = hash(&block_header.inner_rest_bytes());
+        let mut hasher = sha2::Sha256::default();
+        (hash_lite, hash_rest).serialize(&mut hasher).unwrap();
+        let combined_1 = CryptoHash(hasher.finalize().into());
+        let combined_2 = combine_hash(&hash_lite, &hash_rest);
+        assert_eq!(combined_1, combined_2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_compute_inner_hash_of_block() -> Result<()> {
+        let path = "../data/block_header.json".to_string();
+        let (block_hash, block_header) = load_block_header(&path)?;
+        let hash_lite = hash(&block_header.inner_lite_bytes());
+        let hash_rest = hash(&block_header.inner_rest_bytes());
+        let mut hasher = sha2::Sha256::default();
+        (hash_lite, hash_rest).serialize(&mut hasher).unwrap();
+        let combined = CryptoHash(hasher.finalize().into());
+        let hash_inner = compute_inner_hash(&block_header.inner_lite_bytes(), &block_header.inner_rest_bytes());
+        assert_eq!(combined, hash_inner);
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_signed_message_for_validators() -> Result<()> {
+        let path = "../data/block_header.json".to_string();
+        let (block_hash, block_header) = load_block_header(&path)?;
+        let path = "../data/next_block_header.json".to_string();
+        let (_, next_block_header) = load_block_header(&path)?;
+        // for this test msg_to_sign containes a block_hash & next_block_header.height()
+        let msg_to_sign = generate_signed_message(
+            block_header.height(),
+            next_block_header.height(),
+            next_block_header
+                .prev_height()
+                .expect("No prev_height in next_block_header"),
+            *next_block_header.prev_hash(),
+        );
+	let hash = ApprovalInner::Endorsement(block_hash);
+        let msg_to_sign_vec = [borsh::to_vec(&hash).unwrap().as_ref(), next_block_header.height().to_le_bytes().as_ref()].concat();
+        assert_eq!(msg_to_sign, msg_to_sign_vec);
+        Ok(())
+    }
+
+    #[test]
+    fn test_prove_header_hash_for_given_header_data() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        let path = "../data/block_header.json".to_string();
+        let (current_block_hash, current_block_header) = load_block_header(&path)?;
+        let current_block_header_bytes = borsh::to_vec(&current_block_header)?;
+        let current_block_header_hash_bytes = borsh::to_vec(&current_block_hash)?;    
+        let path = "../data/next_block_header.json".to_string();
+        let (_, next_block_header) = load_block_header(&path)?;
+        let next_block_header_bytes = borsh::to_vec(&next_block_header)?;
+
+        let mut timing_tree = TimingTree::new("prove hash", Level::Info);
+
+        let (data, proof) = timed!(
+            timing_tree,
+            "prove hash of current block",
+            prove_header_hash::<F, C, D>(
+                &current_block_header_hash_bytes,
+                &current_block_header_bytes[(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES
+                    - PK_BYTES
+                    - PK_BYTES)
+                    ..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES)],
+                HeaderData {
+                    prev_hash: current_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)].to_vec(),
+                    inner_lite: current_block_header_bytes
+                        [(TYPE_BYTE + PK_BYTES)..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)]
+                        .to_vec(),
+                    inner_rest: current_block_header_bytes[(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)
+                        ..(current_block_header_bytes.len() - TYPE_BYTE - SIG_BYTES)]
+                        .to_vec(),
+                },
+                &mut timing_tree
+            )?
+        );
+        info!(
+            "Block hash proof size: {} bytes",
+            proof.to_bytes().len()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_prove_correctness_of_block_producer_hash() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+    
+        let path = "../data/validators_ordered.json".to_string();
+        let validators = load_validators(&path)?;
+        let validators_bytes: Vec<Vec<u8>> = validators
+            .iter()
+            .map(|value| borsh::to_vec(value).unwrap())
+            .collect();
+        let path = "../data/prev_epoch_block_header.json".to_string();
+        let (_, prev_epoch_block_header) = load_block_header(&path)?;
+        let prev_epoch_block_header_bytes = borsh::to_vec(&prev_epoch_block_header)?;
+        
+        let bp_hash = prev_epoch_block_header_bytes[(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES - PK_BYTES)
+            ..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES)].to_vec();
+        
+        let mut timing_tree = TimingTree::new("prove bp hash", Level::Info);
+
+        // prove next_bp_hash
+        let (data, proof) = timed!(
+            timing_tree,
+            "prove next bp hash",
+            prove_bp_hash::<F, C, D>(&bp_hash, validators_bytes)?
+        );
+        info!(
+            "Bp_hash proof size: {} bytes",
+            proof.to_bytes().len()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_prove_approvals_from_next_block_by_public_keys() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        let path = "../data/block_header.json".to_string();
+        let (block_hash, block_header) = load_block_header(&path)?;
+        let path = "../data/next_block_header.json".to_string();
+        let (_, next_block_header) = load_block_header(&path)?;
+        let approvals_bytes: Vec<Vec<u8>> = next_block_header
+            .approvals()
+            .iter()
+            .map(|approval| borsh::to_vec(approval).unwrap())
+            .collect();
+        // for this test msg_to_sign containes a block_hash & next_block_header.height()
+        let msg_to_sign = generate_signed_message(
+            block_header.height(),
+            next_block_header.height(),
+            next_block_header
+                .prev_height()
+                .expect("No prev_height in next_block_header"),
+            *next_block_header.prev_hash(),
+        );
+        let path = "../data/validators_ordered.json".to_string();
+        let validators = load_validators(&path)?;
+        let validators_bytes: Vec<Vec<u8>> = validators
+            .iter()
+            .map(|value| borsh::to_vec(value).unwrap())
+            .collect();
+
+        let ((data, proof), valid_keys) = prove_approvals::<F, C, D>(&msg_to_sign, approvals_bytes, validators_bytes)?;
+        info!(
+            "Size of proof for aggregated signatures: {} bytes",
+            proof.to_bytes().len()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_prove_valid_keys_stakes_in_validators_list() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+        
+        let path = "../data/block_header.json".to_string();
+        let (block_hash, block_header) = load_block_header(&path)?;
+        let path = "../data/next_block_header.json".to_string();
+        let (_, next_block_header) = load_block_header(&path)?;
+        let approvals_bytes: Vec<Vec<u8>> = next_block_header
+            .approvals()
+            .iter()
+            .map(|approval| borsh::to_vec(approval).unwrap())
+            .collect();
+        // for this test msg_to_sign containes a block_hash & next_block_header.height()
+        let msg_to_sign = generate_signed_message(
+            block_header.height(),
+            next_block_header.height(),
+            next_block_header
+                .prev_height()
+                .expect("No prev_height in next_block_header"),
+            *next_block_header.prev_hash(),
+        );
+        let path = "../data/validators_ordered.json".to_string();
+        let validators = load_validators(&path)?;
+        let validators_bytes: Vec<Vec<u8>> = validators
+            .iter()
+            .map(|value| borsh::to_vec(value).unwrap())
+            .collect();
+        
+        // valid keys
+        let mut valid_keys: Vec<u8> = vec![];
+        for (pos, approval) in approvals_bytes.iter().enumerate() {
+            // signature length (64 bytes) plus Option type (byte), plus signature type (byte)
+            if approval.len() == SIG_BYTES + (TYPE_BYTE + TYPE_BYTE) {
+		let validator_len = validators_bytes[pos].len();
+                let sig = Signature::try_from_slice(&approval[1..])?;
+                let pk = PublicKey::try_from_slice(
+                    &validators_bytes[pos][(validator_len - STAKE_BYTES - PK_BYTES - TYPE_BYTE)
+                        ..(validator_len - STAKE_BYTES)],
+                )?;
+                let verify: bool = sig.verify(&msg_to_sign, &pk);
+                if verify {
+               	    valid_keys.push(pos as u8);
+                    valid_keys.append(
+                        &mut validators_bytes[pos]
+                        [(validator_len - STAKE_BYTES - PK_BYTES)..(validator_len - STAKE_BYTES)]
+                        .to_vec(),
+                    );
+            	}
+	     }
+        }
+        let valid_keys_hash = hash(&valid_keys).0.to_vec();
+        let (data, proof) = prove_valid_keys_stakes_in_valiators_list::<F, C, D>(valid_keys_hash, valid_keys, validators_bytes)?;
+        info!(
+            "Size of proof for aggregated keys & stakes: {} bytes",
+            proof.to_bytes().len()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_prove_valid_keys_in_validators_list() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+        
+        let path = "../data/block_header.json".to_string();
+        let (block_hash, block_header) = load_block_header(&path)?;
+        let path = "../data/next_block_header.json".to_string();
+        let (_, next_block_header) = load_block_header(&path)?;
+        let approvals_bytes: Vec<Vec<u8>> = next_block_header
+            .approvals()
+            .iter()
+            .map(|approval| borsh::to_vec(approval).unwrap())
+            .collect();
+        // for this test msg_to_sign containes a block_hash & next_block_header.height()
+        let msg_to_sign = generate_signed_message(
+            block_header.height(),
+            next_block_header.height(),
+            next_block_header
+                .prev_height()
+                .expect("No prev_height in next_block_header"),
+            *next_block_header.prev_hash(),
+        );
+        let path = "../data/validators_ordered.json".to_string();
+        let validators = load_validators(&path)?;
+        let validators_bytes: Vec<Vec<u8>> = validators
+            .iter()
+            .map(|value| borsh::to_vec(value).unwrap())
+            .collect();
+        
+        // valid keys
+        let mut valid_keys: Vec<u8> = vec![];
+        for (pos, approval) in approvals_bytes.iter().enumerate() {
+	    // signature length (64 bytes) plus Option type (byte), plus signature type (byte)
+            if approval.len() == SIG_BYTES + (TYPE_BYTE + TYPE_BYTE) {
+                let validator_len = validators_bytes[pos].len();
+                let sig = Signature::try_from_slice(&approval[1..])?;
+                let pk = PublicKey::try_from_slice(
+                    &validators_bytes[pos][(validator_len - STAKE_BYTES - PK_BYTES - TYPE_BYTE)
+                       ..(validator_len - STAKE_BYTES)],
+                )?;
+                let verify: bool = sig.verify(&msg_to_sign, &pk);
+                if verify {
+                    valid_keys.push(pos as u8);
+                    valid_keys.append(
+                        &mut validators_bytes[pos]
+                           [(validator_len - STAKE_BYTES - PK_BYTES)..(validator_len - STAKE_BYTES)]
+                           .to_vec(),
+                    );
+                }
+            }
+	}
+        let (data, proof) = prove_valid_keys_in_validators_list::<F, C, D>(valid_keys, validators_bytes)?;
+        info!(
+            "Size of proof for aggregated keys: {} bytes",
+            proof.to_bytes().len()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_prove_current_block() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        let path = "../data/block_header.json".to_string();
+        let (current_block_hash, current_block_header) = load_block_header(&path)?;
+        let path = "../data/next_block_header.json".to_string();
+        let (_, next_block_header) = load_block_header(&path)?;
+        let path = "../data/prev_epoch_block_header.json".to_string();
+        let (prev_epoch_block_hash, prev_epoch_block_header) = load_block_header(&path)?;
+        let prev_epoch_block_header_bytes = borsh::to_vec(&prev_epoch_block_header)?;
+        let path = "../data/validators_ordered.json".to_string();
+        let validators = load_validators(&path)?;
+        let validators_bytes: Vec<Vec<u8>> = validators
+            .iter()
+            .map(|value| borsh::to_vec(value).unwrap())
+            .collect();
+
+        let current_block_header_bytes = borsh::to_vec(&current_block_header)?;
+        let current_block_hash_bytes = borsh::to_vec(&current_block_hash)?;
+        let prev_epoch_block_header_bytes = borsh::to_vec(&prev_epoch_block_header)?;
+        let prev_epoch_block_hash_bytes = borsh::to_vec(&prev_epoch_block_hash)?;
+
+        let approvals_bytes: Vec<Vec<u8>> = next_block_header
+            .approvals()
+            .iter()
+            .map(|approval| borsh::to_vec(approval).unwrap())
+            .collect();
+        // for this test msg_to_sign containes a block_hash & next_block_header.height()
+        let msg_to_sign = generate_signed_message(
+            current_block_header.height(),
+            next_block_header.height(),
+            next_block_header
+                .prev_height()
+                .expect("No prev_height in next_block_header"),
+            *next_block_header.prev_hash(),
+        );
+
+        let mut timing_tree = TimingTree::new("prove previous block", Level::Info);
+
+        let (prev_epoch_block_data, prev_epoch_block_proof) = timed!(
+            timing_tree,
+            "prove previous block",
+            prove_header_hash::<F, C, D>(
+                &prev_epoch_block_hash_bytes,
+                &prev_epoch_block_header_bytes[(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES
+                    - PK_BYTES
+                    - PK_BYTES)
+                    ..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES)],
+                HeaderData {
+                    prev_hash: prev_epoch_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)]
+                        .to_vec(),
+                    inner_lite: prev_epoch_block_header_bytes
+                        [(TYPE_BYTE + PK_BYTES)..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)]
+                        .to_vec(),
+                    inner_rest: prev_epoch_block_header_bytes[(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)
+                        ..(prev_epoch_block_header_bytes.len() - SIG_BYTES - TYPE_BYTE)]
+                        .to_vec(),
+                },
+                &mut timing_tree
+            )?
+        );
+
+        let mut timing_tree = TimingTree::new("prove current block", Level::Info);
+
+        let (
+            (currentblock_header_data, currentblock_header_proof),
+            (currentblock_data, currentblock_proof),
+        ) = timed!(
+            timing_tree,
+            "prove current block header",
+            crate::prove_block::prove_current_block::<F, C, D>(
+                &current_block_hash_bytes,
+                &current_block_header_bytes,
+                &msg_to_sign,
+                approvals_bytes,
+                validators_bytes,
+                None,
+                (&prev_epoch_block_data.verifier_data(), &prev_epoch_block_proof),
+                &mut timing_tree
+            )?
+        );
+    
+        info!("Proof size {}", currentblock_proof.to_bytes().len());
+        
+        Ok(())
+    }
+}

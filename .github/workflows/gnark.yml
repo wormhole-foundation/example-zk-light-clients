@@ -46,3 +46,6 @@ jobs:
 
       - name: Run golint
         run: golint ./...
+
+      - name: Run tests
+        run: go test -v ./tests -skip TestBlockCircuitProver

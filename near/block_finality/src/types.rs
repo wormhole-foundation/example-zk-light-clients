@@ -151,7 +151,4 @@ pub struct OutputTask {
     pub signature_index: usize,
 }
 
-/// Retrieve the block hash from a block header.
-pub fn block_hash_from_header(header: BlockHeader) -> Option<CryptoHash> {
-    Some(*header.hash())
-}
+

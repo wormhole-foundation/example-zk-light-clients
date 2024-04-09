@@ -5,7 +5,7 @@ members = [
   "block_finality",
   "crypto/plonky2_sha256_u32",
   "crypto/plonky2_bn128"
-]
+, "xtask"]
 
 [workspace.package]
 authors     = [ "Zpoken" ]
