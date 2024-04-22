@@ -83,3 +83,33 @@ fn main() -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod service_tests {
+    use super::*;
+
+    #[test]
+    fn test_prove_ed25519() -> Result<()> {
+        const D: usize = 2;
+    type C = PoseidonGoldilocksConfig;
+    type F = <C as GenericConfig<D>>::F;
+
+    let sample_msg1 = "test message".to_string();
+    let sample_pk1 = [
+        59, 106, 39, 188, 206, 182, 164, 45, 98, 163, 168, 208, 42, 111, 13, 115, 101, 50, 21, 119,
+        29, 226, 67, 166, 58, 192, 72, 161, 139, 89, 218, 41,
+    ]
+    .to_vec();
+    let sample_sig1 = [
+        104, 196, 204, 44, 176, 120, 225, 128, 47, 67, 245, 210, 247, 65, 201, 66, 34, 159, 217,
+        32, 175, 224, 14, 12, 31, 231, 83, 160, 214, 122, 250, 68, 250, 203, 33, 143, 184, 13, 247,
+        140, 185, 25, 122, 25, 253, 195, 83, 102, 240, 255, 30, 21, 108, 249, 77, 184, 36, 72, 9,
+        198, 49, 12, 68, 8,
+    ]
+    .to_vec();
+
+    prove_ed25519::<F, C, D>(sample_msg1.as_bytes(), &sample_sig1, &sample_pk1)?;
+
+    Ok(())
+    }
+}

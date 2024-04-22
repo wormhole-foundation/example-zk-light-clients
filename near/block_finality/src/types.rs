@@ -150,5 +150,3 @@ pub struct OutputTask {
     /// The index of the signature in array of approvals.
     pub signature_index: usize,
 }
-
-

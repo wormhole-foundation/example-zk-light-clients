@@ -32,66 +32,6 @@ $ forge install OpenZeppelin/openzeppelin-contracts-upgradeable --no-commit
 ```shell
 $ forge test
 
-Ran 1 test for test/NearBlockVerification.t.sol:ConvertTest
-[PASS] testToHash() (gas: 23561)
-Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.26ms (209.60µs CPU time)
-
-Ran 5 tests for test/NearBlockVerification.t.sol:OwnableTest
-[PASS] testChangesOwnerAfterTransferOwnership() (gas: 18394)
-[PASS] testGuardsOwnershipAgainstStuckState() (gas: 11233)
-[PASS] testLosesOwnershipAfterRenouncement() (gas: 11192)
-[PASS] testPreventsNonOwnersFromRenouncement() (gas: 13633)
-[PASS] testPreventsNonOwnersFromTransferring() (gas: 13859)
-Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 1.84ms (602.04µs CPU time)
-
-Ran 2 tests for test/NearBlockVerification.t.sol:SetupTest
-[PASS] testRevertInitialize() (gas: 12955)
-[PASS] testSetUp() (gas: 21417)
-Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 914.45µs (245.57µs CPU time)
-
-Ran 7 tests for test/NearBlockVerification.t.sol:PausableTest
-[PASS] testCanNotVerifyInPause() (gas: 88087)
-[PASS] testPause() (gas: 36196)
-[PASS] testRevertPauseByNonOwner() (gas: 13614)
-[PASS] testRevertPauseWhenAlreadyPaused() (gas: 35097)
-[PASS] testRevertUnpauseByNonOwner() (gas: 37904)
-[PASS] testRevertUnpauseWhenNotPaused() (gas: 30173)
-[PASS] testUnpause() (gas: 26658)
-Suite result: ok. 7 passed; 0 failed; 0 skipped; finished in 2.35ms (1.43ms CPU time)
-
-Ran 1 test for test/NearBlockVerification.t.sol:SetVerifierTest
-[PASS] testSetVerifier() (gas: 1098647)
-Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 847.68µs (183.06µs CPU time)
-
-Ran 5 tests for test/NearBlockVerification.t.sol:EventsTest
-[PASS] testCompressedProofVerifiedAndSavedEvent() (gas: 312584)
-[PASS] testInitializedEvent() (gas: 793868)
-[PASS] testPausedEvent() (gas: 37382)
-[PASS] testProofVerifiedAndSavedEvent() (gas: 283080)
-[PASS] testUnpausedEvent() (gas: 27572)
-Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 20.69ms (20.13ms CPU time)
-
-Ran 2 tests for test/NearBlockVerification.t.sol:ProofStatusTest
-[PASS] testIsProofedHashWhenInputHashIsProofed() (gas: 280873)
-[PASS] testIsProofedHashWhenInputHashNotProofed() (gas: 15318)
-Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 23.31ms (22.41ms CPU time)
-
-Ran 3 tests for test/Verifier.t.sol:VerifierTest
-[PASS] testIncorrectProof() (gas: 8937393460516737801)
-[PASS] testSuccessfulVerifyCompressedProof() (gas: 270197)
-[PASS] testSuccessfulVerifyProof() (gas: 239681)
-Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 24.22ms (35.10ms CPU time)
-
-Ran 5 tests for test/NearBlockVerification.t.sol:VerifyTest
-[PASS] testHandleIncorrectProof() (gas: 8797746687696168635)
-[PASS] testIsProofedWhenInputIsNotProofed() (gas: 28580)
-[PASS] testIsProofedWhenInputIsProofed() (gas: 280005)
-[PASS] testSuccessfulVerifyAndSaveCompressedProof() (gas: 305882)
-[PASS] testSuccessfulVerifyAndSaveProof() (gas: 274379)
-Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 24.42ms (40.72ms CPU time)
-
-Ran 9 test suites in 31.73ms (99.85ms CPU time): 31 tests passed, 0 failed, 0 skipped (31 total tests)
-
 ```
 
 ### Format

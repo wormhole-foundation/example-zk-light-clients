@@ -1,6 +1,6 @@
-use alloc::{format, vec};
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use alloc::{format, vec};
 use core::ops::Range;
 
 use plonky2::field::extension::Extendable;
@@ -241,7 +241,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for UninterleaveTo
                         row,
                         i,
                     }
-                        .adapter(),
+                    .adapter(),
                 )
             })
             .collect()
@@ -265,7 +265,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for UninterleaveTo
 }
 
 impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
-for UninterleaveToB32Gate
+    for UninterleaveToB32Gate
 {
     fn eval_unfiltered_base_packed<P: PackedField<Scalar = F>>(
         &self,
@@ -322,7 +322,7 @@ pub struct UninterleaveToB32Generator {
 
 // Populate the bit wires and the x_interleaved wire, given that the x wire's value has been set
 impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
-for UninterleaveToB32Generator
+    for UninterleaveToB32Generator
 {
     fn id(&self) -> String {
         "UninterleaveToB32Generator".to_string()

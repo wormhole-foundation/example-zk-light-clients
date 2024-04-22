@@ -1,3 +1,11 @@
+2024-04-22
+
+ - Add more unit tests.
+ - Update coverage files.
+ - Fix code formatting.
+ - Update README.
+ - Fix warnings.
+
 2024-03-29
 
  - Updated the verifier contract.

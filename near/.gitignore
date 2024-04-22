@@ -1,5 +1,3 @@
-target/
-
 .DS_Store
 .vscode/
 Cargo.lock
@@ -14,3 +12,11 @@ near_state_proofs/vault-contract/target
 **/*.proof
 
 *.profraw
+
+target/.future-incompat-report.json
+target/.rustc_info.json
+target/CACHEDIR.TAG
+target/debug/
+target/release/
+
+!target/coverage/

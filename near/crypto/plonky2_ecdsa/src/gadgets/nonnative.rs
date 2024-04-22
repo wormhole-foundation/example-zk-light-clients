@@ -5,6 +5,11 @@ use plonky2::plonk::circuit_data::CommonCircuitData;
 use plonky2::util::serialization::{Buffer, IoResult, Read, Write};
 use plonky2_u32::serialization::ReadU32;
 
+use crate::gadgets::biguint::{
+    BigUintTarget, CircuitBuilderBiguint, GeneratedValuesBigUint, WitnessBigUint,
+};
+use crate::serialization::ReadBigUintTarget;
+use crate::serialization::WriteBigUintTarget;
 use num::{BigUint, Integer, One, Zero};
 use plonky2::field::extension::Extendable;
 use plonky2::field::types::{Field, PrimeField};
@@ -16,12 +21,7 @@ use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::util::ceil_div_usize;
 use plonky2_u32::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
 use plonky2_u32::gadgets::range_check::range_check_u32_circuit;
-use plonky2_u32::witness::{GeneratedValuesU32};
-use crate::serialization::WriteBigUintTarget;
-use crate::serialization::ReadBigUintTarget;
-use crate::gadgets::biguint::{
-    BigUintTarget, CircuitBuilderBiguint, GeneratedValuesBigUint, WitnessBigUint,
-};
+use plonky2_u32::witness::GeneratedValuesU32;
 
 #[derive(Clone, Debug)]
 pub struct NonNativeTarget<FF: Field> {

@@ -52,7 +52,6 @@ plonky2_sha512      = { path = "crypto/plonky2_sha512" }
 plonky2_sha256_u32  = { path = "crypto/plonky2_sha256_u32" }
 plonky2_bn128 	    = { path = "crypto/plonky2_bn128"}
 curve25519-dalek    = { git = "https://github.com/wormhole-foundation/curve25519-dalek", rev = "8ac0b892c7477ea8f023ec81332420fc4faae595" }
-# stdsimd = { version = "0.3", features = ["std"] }
 
 [profile.release]
 opt-level = 3

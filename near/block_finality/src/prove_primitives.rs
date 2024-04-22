@@ -100,34 +100,37 @@ where
     let mut stake1_3_targets: Vec<Target> = builder.add_virtual_targets(stake1_targets.len());
     let three = builder.constant(F::from_canonical_u8(3));
     let mut c = builder.zero();
-    for i in 0..stake1_targets.len() {
-        let t = builder.mul_add(stake1_targets[i], three, c);
-        let bits = builder.split_le(t, 10);
-        stake1_3_targets[i] = builder.le_sum(bits[0..8].iter());
-        c = builder.le_sum(bits[8..10].iter());
+    let mut i = (stake1_targets.len() - 1) as isize;
+    while i >= 0 {
+        let t = builder.mul_add(stake1_targets[i as usize], three, c);
+        let bits = builder.split_le(t, 64);
+        stake1_3_targets[i as usize] = builder.le_sum(bits[0..8].iter());
+        c = builder.le_sum(bits[8..16].iter());
+        i -= 1;
     }
-    stake1_3_targets.push(c);
     // compute 2 * stake2
     let two = builder.two();
     let mut c = builder.zero();
-    for stake_target in &mut stake2_targets {
-        let t = builder.mul_add(*stake_target, two, c);
-        let bits = builder.split_le(t, 9);
-        *stake_target = builder.le_sum(bits[0..8].iter());
-        c = builder.le_sum(bits[8..9].iter());
+    let mut i = (stake2_targets.len() - 1) as isize;
+    while i >= 0 {
+        let t = builder.mul_add(stake2_targets[i as usize], two, c);
+        let bits = builder.split_le(t, 64);
+        stake2_targets[i as usize] = builder.le_sum(bits[0..8].iter());
+        c = builder.le_sum(bits[8..16].iter());
+        i -= 1;
     }
-    stake2_targets.push(c);
     // if stake2 array is bigger and there are non zero elements
     // then stake1 is not 2/3 of stake2
+    // note: big endian bytes order
     let zero = builder.zero();
-    for stake in stake2_targets.iter().skip(stake1_3_targets.len()) {
-        builder.connect(*stake, zero);
+    for i in 0..(stake2_targets.len() - stake1_3_targets.len()) {
+        builder.connect(stake2_targets[i], zero);
     }
     // compare: stake1 is more than 2/3 of stake2
     let mut res: Vec<Target> = builder.add_virtual_targets(stake1_3_targets.len());
-    let mut i = (stake1_3_targets.len() - 1) as isize;
+    let mut i = 0; //(stake1_3_targets.len() - 1) as isize;
     let mut prev = (BoolTarget::new_unsafe(zero), zero);
-    while i >= 0 {
+    while i < stake1_3_targets.len() {
         let if_equal = builder.is_equal(stake1_3_targets[i as usize], stake2_targets[i as usize]);
         // check if the difference is negative,
         // then the result is order() - stake2_targets[i]
@@ -153,7 +156,8 @@ where
             }
             s
         };
-        if (i as usize) == stake1_3_targets.len() - 1 {
+        if (i as usize) == 0 {
+            // if if_positive = f (stake1[i] >= stake2[i]) -> res[i] = stake1[i], stake2[i] otherwise
             res[i as usize] = builder.select(
                 BoolTarget::new_unsafe(if_positive),
                 stake2_targets[i as usize],
@@ -161,19 +165,22 @@ where
             );
             prev = (if_equal, if_positive);
         } else {
+            // if prev (f, f) -> new prev (f, f)
+            // if prev (t, f) -> new prev (if_equal, if_positive)
             prev = {
                 let q = builder.is_equal(prev.0.target, prev.1);
                 let tmp1 = builder.select(q, prev.0.target, if_equal.target);
                 let tmp2 = builder.select(q, prev.1, if_positive);
                 (BoolTarget::new_unsafe(tmp1), tmp2)
             };
+            // if if_positive = f (stake1[i] >= stake2[i]) -> res[i] = stake1[i], stake2[i] otherwise
             res[i as usize] = builder.select(
                 BoolTarget::new_unsafe(prev.1),
                 stake2_targets[i as usize],
                 stake1_3_targets[i as usize],
             );
         };
-        i -= 1;
+        i += 1;
     }
     for i in 0..stake1_3_targets.len() {
         builder.connect(stake1_3_targets[i], res[i]);
@@ -190,26 +197,64 @@ where
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-
     use crate::prove_primitives::prove_eq_array;
     use crate::prove_primitives::two_thirds;
+    use anyhow::Result;
+    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use rand::random;
 
     #[test]
     fn test_two_thirds() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
+        // choose 1/3 to check whether func works with 2/3 of the value
+        let v1_3: u64 = random::<u32>() as u64;
+        let v: u64 = v1_3 * 3;
+        // more then 2/3
+        let v1: u64 = ((v / 3) * 2) + 5;
 
-        let v: u32 = 1526391;
-        let v1: u32 = (1526391 / 3) + 5;
-        let v2: u32 = (1526391 / 3) - 5;
-        let v3: u32 = 1526391 / 3;
+        let v_bytes = v.to_be_bytes();
+        let v_i_bytes = v1.to_be_bytes();
 
-        let v_bits = v.to_be_bytes();
-        let v_i_bits = v1.to_be_bytes();
-        let (data, proof) = two_thirds::<F, C, D>(&v_bits, &v_i_bits)?;
+        let (data, proof) = two_thirds::<F, C, D>(&v_i_bytes, &v_bytes)?;
+        data.verify(proof)
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_two_thirds_when_stake2_targets_is_bigger_stake1_targets() {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+        // choose 1/3 to check whether func works with 2/3 of the value
+        let v1_3: u64 = random::<u32>() as u64;
+        let v: u64 = v1_3 * 3;
+        // less then 2/3
+        let v1: u64 = ((v / 3) * 2) - 5;
+
+        let v_bytes = v.to_be_bytes();
+        let v_i_bytes = v1.to_be_bytes();
+
+        let (data, proof) = two_thirds::<F, C, D>(&v_i_bytes, &v_bytes).unwrap();;
+        data.verify(proof).unwrap();
+    }
+
+    #[test]
+    fn test_two_thirds_when_stake1_targets_is_equal_to_stake2_targets() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+        // choose 1/3 to check whether func works with 2/3 of the value
+        let v1_3: u64 = random::<u32>() as u64;
+        let v: u64 = v1_3 * 3;
+        // 2/3
+        let v1: u64 = (v / 3) * 2;
+
+        let v_bytes = v.to_be_bytes();
+        let v_i_bytes = v1.to_be_bytes();
+
+        let (data, proof) = two_thirds::<F, C, D>(&v_i_bytes, &v_bytes)?;
         data.verify(proof)
     }
 

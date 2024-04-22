@@ -393,9 +393,8 @@ mod tests {
     use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use sha2::{Digest, Sha256};
 
-    use crate::merkle_utils::Hash256;
     use crate::sha256::{CircuitBuilderHashSha2, WitnessHashSha2};
-    use crate::types::{CircuitBuilderHash, WitnessHash};
+    use crate::types::CircuitBuilderHash;
 
     pub const SHA256_BLOCK: usize = 512;
 

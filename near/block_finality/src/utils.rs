@@ -59,7 +59,9 @@ pub fn u8bit_to_u8byte(bits: &[u8]) -> Vec<u8> {
     let mut bytes: Vec<u8> = (0..len).map(|_| 0).collect();
     let mut j = 7;
     for i in 0..bits.len() {
-	if j < 0 { j = 7; }
+        if j < 0 {
+            j = 7;
+        }
         bytes[i / 8] |= bits[i] << j;
         j -= 1;
     }
@@ -251,9 +253,7 @@ mod tests {
         let s = String::from("6d657373616765"); // "message" in hexadecimal
         assert_eq!(
             decode_hex(&s),
-            Ok(vec![
-                0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
-            ])
+            Ok(vec![0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,])
         );
     }
 
@@ -270,19 +270,16 @@ mod tests {
         assert_eq!(
             get_sha256_hash(msg),
             Ok(vec![
-                0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4, 0xc8, 0x99,
-                0x6f, 0xb9, 0x24, 0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c, 0xa4, 0x95,
-                0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55,
+                0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4, 0xc8, 0x99, 0x6f,
+                0xb9, 0x24, 0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c, 0xa4, 0x95, 0x99, 0x1b,
+                0x78, 0x52, 0xb8, 0x55,
             ])
         );
     }
 
     #[test]
     fn test_u8bit_to_u8byte() {
-        let bits: Vec<u8> = vec![
-            1, 0, 1, 1, 0, 0, 1, 0,
-            0, 1, 1, 0, 1, 0, 1, 1,
-        ];
+        let bits: Vec<u8> = vec![1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1];
         assert_eq!(u8bit_to_u8byte(&bits), vec![0xB2, 0x6B]);
     }
 
@@ -296,17 +293,14 @@ mod tests {
     #[tokio::test]
     async fn test_load_block_from_rpc() -> Result<(), anyhow::Error> {
         env::set_var("NEAR_RPC", "https://rpc.mainnet.near.org");
-        let block_data = load_block_from_rpc(
-            "HuAKRU6FUo8HSaV4TZo6Hfmi7UhZgzoZtxy9MXkaTrvA"
-        ).await;
+        let block_data = load_block_from_rpc("RuywEaMPnWXkTuRU6LN376T435MnEvb4oeNo5hhMPED").await;
         assert!(block_data.is_ok());
         Ok(())
     }
+
     #[test]
     fn test_load_validators() -> Result<(), anyhow::Error> {
-        let validators = load_validators(
-            "../data/validators_ordered.json"
-        );
+        let validators = load_validators("../data/validators_ordered.json");
         assert!(validators.is_ok());
         Ok(())
     }
@@ -314,11 +308,9 @@ mod tests {
     #[tokio::test]
     async fn test_load_validators_from_rpc() -> Result<(), anyhow::Error> {
         env::set_var("NEAR_RPC", "https://rpc.mainnet.near.org");
-        let validators = load_validators_from_rpc(
-            "HuAKRU6FUo8HSaV4TZo6Hfmi7UhZgzoZtxy9MXkaTrvA"
-        ).await;
+        let validators =
+            load_validators_from_rpc("RuywEaMPnWXkTuRU6LN376T435MnEvb4oeNo5hhMPED").await;
         assert!(validators.is_ok());
         Ok(())
-
     }
 }

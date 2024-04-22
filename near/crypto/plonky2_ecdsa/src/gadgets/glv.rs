@@ -19,9 +19,8 @@ use crate::gadgets::biguint::{GeneratedValuesBigUint, WitnessBigUint};
 use crate::gadgets::curve::{AffinePointTarget, CircuitBuilderCurve};
 use crate::gadgets::curve_msm::curve_msm_circuit;
 use crate::gadgets::nonnative::{CircuitBuilderNonNative, NonNativeTarget};
-use crate::serialization::WriteBigUintTarget;
 use crate::serialization::ReadBigUintTarget;
-
+use crate::serialization::WriteBigUintTarget;
 
 pub trait CircuitBuilderGlv<F: RichField + Extendable<D>, const D: usize> {
     fn secp256k1_glv_beta(&mut self) -> NonNativeTarget<Secp256K1Base>;

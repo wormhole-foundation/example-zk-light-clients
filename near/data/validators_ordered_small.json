@@ -1,0 +1,22 @@
+{
+  "result": [
+    {
+      "account_id": "staked.poolv1.near",
+      "public_key": "ed25519:95A5KUEDPMp3nXLtYo9YdpgAbaB4g5ctcQzCwz65qcrw",
+      "stake": "43654650564970427801212242801095",
+      "validator_stake_struct_version": "V1"
+    },
+    {
+      "account_id": "figment.poolv1.near",
+      "public_key": "ed25519:DCjofMC2mGUoYUFzgAWzubkYXwCQSTmsBnV3ERQgX6mH",
+      "stake": "35975878350944329191662939978219",
+      "validator_stake_struct_version": "V1"
+    },
+    {
+      "account_id": "astro-stakers.poolv1.near",
+      "public_key": "ed25519:9F8YLJms7HVuzueNqkXBEknFnL5kxRUpNcyx41zKMjpK",
+      "stake": "27830944200648970917881135841925",
+      "validator_stake_struct_version": "V1"
+    }
+  ]
+}

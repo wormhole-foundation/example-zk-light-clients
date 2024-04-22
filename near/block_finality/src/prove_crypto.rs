@@ -7,7 +7,7 @@ use plonky2::plonk::circuit_data::{CommonCircuitData, VerifierOnlyCircuitData};
 use plonky2::plonk::config::Hasher;
 use plonky2::{
     hash::hash_types::RichField,
-    iop::witness::{PartialWitness},
+    iop::witness::PartialWitness,
     plonk::{
         circuit_builder::CircuitBuilder,
         circuit_data::{CircuitConfig, CircuitData},
@@ -22,8 +22,8 @@ use plonky2_ed25519::gadgets::eddsa::{ed25519_circuit, fill_ecdsa_targets, EDDSA
 use plonky2_sha256_u32::sha256::{CircuitBuilderHashSha2, WitnessHashSha2};
 use plonky2_sha256_u32::types::CircuitBuilderHash;
 
+use crate::recursion::recursive_proof;
 use crate::utils::vec_u32_to_u8;
-use crate::{recursion::recursive_proof};
 
 pub const SHA256_BLOCK: usize = 512;
 
@@ -33,9 +33,9 @@ pub const SHA256_BLOCK: usize = 512;
 /// All proving functions use u32 values.
 /// # Arguments
 ///
-/// * `pis_hash_1` - A first hash represented as an array of field elements.
-/// * `pis_hash_2` - A second hash represented as an array of field elements.
-/// * `final_hash` - A hash of concatenation of pis_hash_1 & pis_hash_2.
+/// * `pis_hash_1` - A first hash represented as an array of field elements as u32.
+/// * `pis_hash_2` - A second hash represented as an array of field elements as u32.
+/// * `final_hash` - A hash of concatenation of hashes as u8.
 /// * `(hash_common_1, hash_verifier_1, hash_proof_1)` - A proof for the first hash.
 /// * `hash_data_proof_2` - A proof for the second hash (optional value).
 /// * `set_pis_1` - A flag that indicates whether to set first hash as public inputs in aggregation.
@@ -101,10 +101,9 @@ where
         msg.append(&mut hash);
     }
 
-    let final_hash_bytes = if let Some(final_hash) = final_hash {
-        final_hash.to_vec()
-    } else {
-        borsh::to_vec(&hash(&msg))?
+    let final_hash_bytes = match final_hash {
+        Some(final_hash) => final_hash.to_vec(),
+        _ => borsh::to_vec(&hash(&msg))?,
     };
 
     let (hash_d, hash_p) = sha256_proof_u32(&msg, &final_hash_bytes)?;
@@ -115,8 +114,6 @@ where
     )?;
     Ok((result_d, result_p))
 }
-
-
 
 /// Computes a SHA-256 proof with public inputs in format of u32 values for a given message and its hash.
 ///
@@ -267,25 +264,177 @@ pub fn get_ed25519_targets<
     Ok((circuit_data, targets))
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[test]
-//     fn test_prove_sub_hashes_u32_aggregation_correctness() -> Result<()> {}
-//
-//     #[test]
-//     fn test_sha256_proof_u32_computation_with_public_inputs() -> Result<()> {}
-//
-//     #[test]
-//     fn test_get_ed25519_circuit_targets_caching() -> Result<()> {}
-//
-//     #[test]
-//     fn test_ed25519_proof_reuse_circuit_reusability() -> Result<()> {}
-//
-//     #[test]
-//     fn test_ed25519_proof_computation_for_specific_message_signature_and_public_key() -> Result<()> {}
-//
-//     #[test]
-//     fn test_get_ed25519_targets_computation_based_on_message_length() -> Result<()> {}
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::decode_hex;
+    use plonky2::plonk::{circuit_data, config::PoseidonGoldilocksConfig};
+    use plonky2_field::types::Field;
+    use rand::random;
+
+    #[test]
+    fn test_prove_sub_hashes_u32_aggregation_correctness() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        const MSGLEN: usize = 1000;
+        let msg1: Vec<u8> = (0..MSGLEN).map(|_| random::<u8>() as u8).collect();
+        let hash1 = hash(&msg1);
+        let msg2: Vec<u8> = (0..MSGLEN).map(|_| random::<u8>() as u8).collect();
+        let hash2 = hash(&msg2);
+        let msg3 = [hash1.0, hash2.0].concat();
+        let hash3 = hash(&msg3);
+
+        let (d1, p1) = sha256_proof_u32::<F, C, D>(&msg1, &hash1.0)?;
+        d1.verify(p1.clone())?;
+        let (d2, p2) = sha256_proof_u32::<F, C, D>(&msg2, &hash2.0)?;
+        d2.verify(p2.clone())?;
+        let (d3, p3) = sha256_proof_u32::<F, C, D>(&msg3, &hash3.0)?;
+        d3.verify(p3.clone())?;
+
+        let (_data, _proof) = prove_sub_hashes_u32(
+            true,
+            true,
+            &p1.public_inputs,
+            &p2.public_inputs,
+            Some(&hash3.0.to_vec()),
+            (&d1.common, &d1.verifier_only, &p1),
+            Some((&d2.common, &d2.verifier_only, &p2)),
+        )?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_sha256_proof_u32_computation_with_public_inputs() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        const MSGLEN: usize = 1000;
+        let msg: Vec<u8> = (0..MSGLEN).map(|_| random::<u8>() as u8).collect();
+        let hash = hash(&msg);
+
+        let (_data, _proof) = sha256_proof_u32::<F, C, D>(&msg, &hash.0)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_ed25519_circuit_targets_caching() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        let msg1 = "test message".to_string();
+        let _pk1 = decode_hex(
+            &"087CFBF793E35C806B248FA82FC4B4F5A9EC7FFC6088187874AB1ED6519F935A".to_string(),
+        )?;
+        let _sig1 = decode_hex(&"8158AD38E169B6CD61EE4AB90C041AF459D02C3CDF9D7F4E740CBD623DE34DF808D82AB405D43F4C7998076F63FAA84DCD1DFF5C91426877B51C93B22EDC790A".to_string())?;
+
+        let msg2 = "second one!!".to_string();
+        let _pk2 = decode_hex(
+            &"87922330C78D15BFEB2669625BA3ED911AD47EFC400B78C4F5E9F6FB5CFB4F2A".to_string(),
+        )?;
+        let _sig2 = decode_hex(&"AECE7B6A6FB85BE6F484F75D25EB09FC755A9C50500107DFB2478894C9875EE4151ADA9F905F40E09580BF7A4A952024FBAABD4FFAB8C0BC30B8FEAC300D7901".to_string())?;
+
+        let msg3 = "third one".to_string();
+        let _sig3 = decode_hex(&"103C8257859C43C75E28C55361C08B61D1C4BDA199FB5943D447F0903F5F1FF780FC77B8D0EAB80802E14A9BF7983C88175F0CCA6D6E9F3E47419A7A34B4710F".to_string())?;
+
+        assert_eq!(msg1.len(), msg2.len());
+
+        let mut circuit_data_targets: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> =
+            HashMap::new();
+
+        let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
+            msg1.as_bytes().len(),
+            &mut circuit_data_targets,
+        );
+        assert!(circuit_data_targets.len() == 1);
+        let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
+            msg2.as_bytes().len(),
+            &mut circuit_data_targets,
+        );
+        assert!(circuit_data_targets.len() == 1);
+        let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
+            msg3.as_bytes().len(),
+            &mut circuit_data_targets,
+        );
+        assert!(circuit_data_targets.len() == 2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_ed25519_proof_reuse_circuit_reusability() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        let msg1 = "test message".to_string();
+        let pk1 = decode_hex(
+            &"087CFBF793E35C806B248FA82FC4B4F5A9EC7FFC6088187874AB1ED6519F935A".to_string(),
+        )?;
+        let sig1 = decode_hex(&"8158AD38E169B6CD61EE4AB90C041AF459D02C3CDF9D7F4E740CBD623DE34DF808D82AB405D43F4C7998076F63FAA84DCD1DFF5C91426877B51C93B22EDC790A".to_string())?;
+
+        let msg2 = "second one!!".to_string();
+        let pk2 = decode_hex(
+            &"87922330C78D15BFEB2669625BA3ED911AD47EFC400B78C4F5E9F6FB5CFB4F2A".to_string(),
+        )?;
+        let sig2 = decode_hex(&"AECE7B6A6FB85BE6F484F75D25EB09FC755A9C50500107DFB2478894C9875EE4151ADA9F905F40E09580BF7A4A952024FBAABD4FFAB8C0BC30B8FEAC300D7901".to_string())?;
+
+        let msg3 = "third one".to_string();
+        let pk3 = decode_hex(
+            &"CA8C33194B4C06E205F0FE54C6D902C458278E60410845DFBBF6E2200304D8CF".to_string(),
+        )?;
+        let sig3 = decode_hex(&"103C8257859C43C75E28C55361C08B61D1C4BDA199FB5943D447F0903F5F1FF780FC77B8D0EAB80802E14A9BF7983C88175F0CCA6D6E9F3E47419A7A34B4710F".to_string())?;
+
+        assert_eq!(msg1.len(), msg2.len());
+
+        let mut circuit_data_targets: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> =
+            HashMap::new();
+
+        let (d1, p1) = ed25519_proof_reuse_circuit::<F, C, D>(
+            msg1.as_bytes(),
+            &sig1,
+            &pk1,
+            &mut circuit_data_targets,
+        )?;
+        d1.verify(p1)?;
+        assert!(circuit_data_targets.len() == 1);
+        let (d2, p2) = ed25519_proof_reuse_circuit::<F, C, D>(
+            msg2.as_bytes(),
+            &sig2,
+            &pk2,
+            &mut circuit_data_targets,
+        )?;
+        d2.verify(p2)?;
+        assert!(circuit_data_targets.len() == 1);
+        let (d3, p3) = ed25519_proof_reuse_circuit::<F, C, D>(
+            msg3.as_bytes(),
+            &sig3,
+            &pk3,
+            &mut circuit_data_targets,
+        )?;
+        assert!(circuit_data_targets.len() == 2);
+        d3.verify(p3)
+    }
+
+    #[test]
+    fn test_ed25519_proof_without_reusing_circuit() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        let msg = "test message".to_string();
+        let pk = decode_hex(
+            &"087CFBF793E35C806B248FA82FC4B4F5A9EC7FFC6088187874AB1ED6519F935A".to_string(),
+        )?;
+        let sig = decode_hex(&"8158AD38E169B6CD61EE4AB90C041AF459D02C3CDF9D7F4E740CBD623DE34DF808D82AB405D43F4C7998076F63FAA84DCD1DFF5C91426877B51C93B22EDC790A".to_string())?;
+
+        let (data, targets) = get_ed25519_targets::<F, C, D>(msg.as_bytes().len() * 8)?;
+        let proof = ed25519_proof::<F, C, D>(msg.as_bytes(), &sig, &pk, (data.clone(), targets))?;
+        data.verify(proof)
+    }
+}
