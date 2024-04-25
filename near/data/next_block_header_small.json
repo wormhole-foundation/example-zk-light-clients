@@ -1,8 +1,8 @@
 {
   "approvals": [
-    "ed25519:3dJkUqydcG8u8mVQpte3jq1h8xZeqejcj9Fi8aJUkoHvo5vx2S1zbow7pSGSeoGWLYMnVcrR8dMkgRAw4YmSbx8R",
-    "ed25519:34zEHdoczpVNUpyNvft91hrYone5sixoCv4jdM1VR4zBLBA2kpAomfVsNAuquMKdNWhDm5JF8bQ2dTYnrpM3uaV7",
-    "ed25519:5w17ido5wAYtWMLfLcV1o7Zy9SnyA7vECZrbo92ReehtimEUPKSmXgV5EVkLn9MtM1EoeFHaqMWcY1jX7iiTQfxV"
+    "ed25519:2Euxjk2cM61MGxzJJNzL7Ax5gqUeFWdSERtkxWe9Sq9SrqoZL3qZpNMhi7wg1hqhUoWUqNjnj9qPLe5Vn1QxPYkq",
+    "ed25519:4aFVHA1a7ZagdSd4drbM1h55VrDEo3m7k4UJfhpSr4KmcHi2B73AUs91YgUT1deecHQ3p1oBrjaNrmv4eBN17Uhc",
+    "ed25519:5Vc32jqecKNNqydQwGiANcQoG7YcprsnG9quJSxPAPygNBf6HWYjpFpYysQPAK2bHMkAmd2MPfc2VGeYwe4uTpJX"
   ],
   "block_body_hash": "DminPMaeLVHfvmDs68ufBzrMsYGybHyUjJgZpXJNJW5j",
   "block_merkle_root": "CrxN5aSPuYSXj2mmHKXCtXAG4EkiwqbeCXrJRDda1hJo",

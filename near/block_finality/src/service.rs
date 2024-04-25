@@ -52,9 +52,6 @@ pub async fn prove_current_epoch_block(
     let msg_to_sign = generate_signed_message(
         current_block_header.height(),
         next_block_header.height(),
-        next_block_header
-            .prev_height()
-            .expect("No prev_height in next_block_header"),
         *next_block_header.prev_hash(),
     );
 
@@ -279,9 +276,6 @@ mod service_tests {
         let msg_to_sign = generate_signed_message(
             current_block_header.height(),
             next_block_header.height(),
-            next_block_header
-                .prev_height()
-                .expect("No prev_height in next_block_header"),
             *next_block_header.prev_hash(),
         );
 

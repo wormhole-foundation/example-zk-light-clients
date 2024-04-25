@@ -88,11 +88,10 @@ pub fn compute_inner_hash(inner_lite: &[u8], inner_rest: &[u8]) -> CryptoHash {
 pub fn generate_signed_message(
     bh_height: u64,
     nb_height: u64,
-    nb_prev_height: u64,
     nb_prev_hash: CryptoHash,
 ) -> Vec<u8> {
     Approval::get_data_for_sig(
-            &if bh_height + 1 == nb_height { // &if nb_prev_height == bh_height {
+            &if bh_height + 1 == nb_height {
             // If the next block exists, the validators sign the hash of the previous one
             ApprovalInner::Endorsement(nb_prev_hash)
         } else {
@@ -906,6 +905,7 @@ mod tests {
     use crate::utils::{load_block_header, load_validators};
     use anyhow::Result;
     use log::info;
+    use near_crypto::{KeyType, SecretKey};
     use near_primitives::borsh::BorshSerialize;
     use plonky2::plonk::config::PoseidonGoldilocksConfig;
     use sha2::Digest;
@@ -964,9 +964,6 @@ mod tests {
         let msg_to_sign = generate_signed_message(
             block_header.height(),
             next_block_header.height(),
-            next_block_header
-                .prev_height()
-                .expect("No prev_height in next_block_header"),
             *next_block_header.prev_hash(),
         );
         let hash = ApprovalInner::Endorsement(block_hash);
@@ -989,9 +986,6 @@ mod tests {
         let msg_to_sign = generate_signed_message(
             block_header.height(),
             next_block_header.height(),
-            next_block_header
-                .prev_height()
-                .expect("No prev_height in next_block_header"),
             *next_block_header.prev_hash(),
         );
         let height = ApprovalInner::Skip(block_header.height());
@@ -1098,9 +1092,6 @@ mod tests {
         let msg_to_sign = generate_signed_message(
             block_header.height(),
             next_block_header.height(),
-            next_block_header
-                .prev_height()
-                .expect("No prev_height in next_block_header"),
             *next_block_header.prev_hash(),
         );
         let path = "../data/validators_ordered_small.json".to_string();
@@ -1138,9 +1129,6 @@ mod tests {
         let msg_to_sign = generate_signed_message(
             block_header.height(),
             next_block_header.height(),
-            next_block_header
-                .prev_height()
-                .expect("No prev_height in next_block_header"),
             *next_block_header.prev_hash(),
         );
         let path = "../data/validators_ordered_small.json".to_string();
@@ -1204,9 +1192,6 @@ mod tests {
         let msg_to_sign = generate_signed_message(
             block_header.height(),
             next_block_header.height(),
-            next_block_header
-                .prev_height()
-                .expect("No prev_height in next_block_header"),
             *next_block_header.prev_hash(),
         );
         let path = "../data/validators_ordered_small.json".to_string();
@@ -1280,9 +1265,6 @@ mod tests {
         let msg_to_sign = generate_signed_message(
             current_block_header.height(),
             next_block_header.height(),
-            next_block_header
-                .prev_height()
-                .expect("No prev_height in next_block_header"),
             *next_block_header.prev_hash(),
         );
 

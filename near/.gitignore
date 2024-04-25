@@ -13,10 +13,4 @@ near_state_proofs/vault-contract/target
 
 *.profraw
 
-target/.future-incompat-report.json
-target/.rustc_info.json
-target/CACHEDIR.TAG
-target/debug/
-target/release/
-
-!target/coverage/
+target/

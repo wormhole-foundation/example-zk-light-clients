@@ -442,42 +442,30 @@ mod tests {
     use plonky2::plonk::circuit_builder::CircuitBuilder;
     use plonky2::plonk::circuit_data::CircuitConfig;
     use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-    use rand::Rng;
-
-    const EXPECTED_RES: [u8; 512] = [
-        0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1,
-        0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0,
-        1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1,
-        0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1,
-        1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
-        0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0,
-        1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1,
-        1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0,
-        1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1,
-        1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1,
-        1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0,
-        1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0,
-        1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1,
-        0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1,
-        0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1,
-        0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0,
-        0, 1,
-    ];
+    use rand::random;
+    use sha2::Sha512;
+    use sha2::Digest;
 
     #[test]
     fn test_sha512() -> Result<()> {
-        let mut msg = vec![0; 128_usize];
-        for i in 0..127 {
-            msg[i] = i as u8;
-        }
+        const MSG_SIZE: usize = 128;
+
+        let msg: Vec<u8> = (0..MSG_SIZE).map(|_| random::<u8>() as u8).collect();
+        
+        let mut hasher = Sha512::new();
+        hasher.update(msg.clone());
+        let hash = hasher.finalize();
 
         let msg_bits = array_to_bits(&msg);
         let len = msg.len() * 8;
+
+	let hash_bits = array_to_bits(&hash);
+        
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
-        let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
+        
+	let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
         let targets = sha512_circuit(&mut builder, len as u128);
         let mut pw = PartialWitness::new();
 
@@ -485,8 +473,8 @@ mod tests {
             pw.set_bool_target(targets.message[i], msg_bits[i]);
         }
 
-        for i in 0..EXPECTED_RES.len() {
-            if EXPECTED_RES[i] == 1 {
+        for i in 0..hash_bits.len() {
+            if hash_bits[i] {
                 builder.assert_one(targets.digest[i].target);
             } else {
                 builder.assert_zero(targets.digest[i].target);
@@ -502,16 +490,24 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_sha512_failure() {
-        let mut msg = vec![0; 128_usize];
-        for i in 0..127 {
-            msg[i] = i as u8;
-        }
+	const MSG_SIZE: usize = 128;
+
+        let msg: Vec<u8> = (0..MSG_SIZE).map(|_| random::<u8>() as u8).collect();
+        let msg1: Vec<u8> = (0..MSG_SIZE).map(|_| random::<u8>() as u8).collect();
+
+        let mut hasher = Sha512::new();
+        hasher.update(msg1.clone());
+        let hash = hasher.finalize();
 
         let msg_bits = array_to_bits(&msg);
         let len = msg.len() * 8;
+
+        let hash_bits = array_to_bits(&hash);
+
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
+
         let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
         let targets = sha512_circuit(&mut builder, len as u128);
         let mut pw = PartialWitness::new();
@@ -520,11 +516,8 @@ mod tests {
             pw.set_bool_target(targets.message[i], msg_bits[i]);
         }
 
-        let mut rng = rand::thread_rng();
-        let rnd = rng.gen_range(0..512);
-        for i in 0..EXPECTED_RES.len() {
-            let b = (i == rnd && EXPECTED_RES[i] != 1) || (i != rnd && EXPECTED_RES[i] == 1);
-            if b {
+        for i in 0..hash_bits.len() {
+            if hash_bits[i] {
                 builder.assert_one(targets.digest[i].target);
             } else {
                 builder.assert_zero(targets.digest[i].target);

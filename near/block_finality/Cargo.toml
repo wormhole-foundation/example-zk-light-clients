@@ -29,6 +29,7 @@ rand_chacha.workspace = true
 unroll.workspace = true
 static_assertions.workspace = true
 curve25519-dalek.workspace = true
+ed25519-compact.workspace = true
 near-crypto.workspace = true
 near-primitives.workspace = true
 num.workspace = true

@@ -1,8 +1,8 @@
 {
   "approvals": [
-    "ed25519:3dJkUqydcG8u8mVQpte3jq1h8xZeqejcj9Fi8aJUkoHvo5vx2S1zbow7pSGSeoGWLYMnVcrR8dMkgRAw4YmSbx8R",
-    "ed25519:34zEHdoczpVNUpyNvft91hrYone5sixoCv4jdM1VR4zBLBA2kpAomfVsNAuquMKdNWhDm5JF8bQ2dTYnrpM3uaV7",
-    "ed25519:5w17ido5wAYtWMLfLcV1o7Zy9SnyA7vECZrbo92ReehtimEUPKSmXgV5EVkLn9MtM1EoeFHaqMWcY1jX7iiTQfxV"
+    "ed25519:2tK93dtZr2kmfn1tyVZuyDGJKpyU7Z8EHKErZDCzgev5hxLgYPDDFDTtesRD1CdWBBc3AcjvdjSnQx6K4kCBu6a2",
+    "ed25519:57YXPedmXe9yfvLYgDvE7AFKPjh6qd9ZhPgF1JuPMHiqSMnwoii5TqCyjWSPkgg9CwmfHFv4eV6UcFa795D9j7WL",
+    "ed25519:2tzKBuvRuqnzzMdQRUYUZATQiStEMTzpWMyEWMGxgHCT8dwDg3RiqzZYADY9RdEMosTVag6sgcm3Wio1s8oUdELP"
   ],
   "block_body_hash": "DminPMaeLVHfvmDs68ufBzrMsYGybHyUjJgZpXJNJW5j",
   "block_merkle_root": "CrxN5aSPuYSXj2mmHKXCtXAG4EkiwqbeCXrJRDda1hJo",
@@ -23,7 +23,7 @@
   "epoch_sync_data_hash": null,
   "gas_price": "100000000",
   "hash": "4bVwBxuctyZdFjdGTozwEYtNEymjJw6KXupWRBwoKeuN",
-  "height": 105971806,
+  "height": 105971808,
   "last_ds_final_block": "GNnqtrESCpyLkQBch6tKVjGVstWzt7MgcaHYKegneC7b",
   "last_final_block": "Ajh4T1qtHDboEPTUoBaBD3yQ8MWPG2DQyL8LbgxJLtML",
   "latest_protocol_version": 63,

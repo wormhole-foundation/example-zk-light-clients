@@ -271,6 +271,7 @@ mod tests {
     use plonky2::plonk::{circuit_data, config::PoseidonGoldilocksConfig};
     use plonky2_field::types::Field;
     use rand::random;
+    use ed25519_compact::*;
 
     #[test]
     fn test_prove_sub_hashes_u32_aggregation_correctness() -> Result<()> {
@@ -327,38 +328,30 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
 
-        let msg1 = "test message".to_string();
-        let _pk1 = decode_hex(
-            &"087CFBF793E35C806B248FA82FC4B4F5A9EC7FFC6088187874AB1ED6519F935A".to_string(),
-        )?;
-        let _sig1 = decode_hex(&"8158AD38E169B6CD61EE4AB90C041AF459D02C3CDF9D7F4E740CBD623DE34DF808D82AB405D43F4C7998076F63FAA84DCD1DFF5C91426877B51C93B22EDC790A".to_string())?;
+	const MSGLEN1: usize = 100;
+	const MSGLEN2: usize = 1000;        
+	
+	let msg1: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
+	let msg2: Vec<u8> = (0..MSGLEN2).map(|_| random::<u8>() as u8).collect();
+	let msg3: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
 
-        let msg2 = "second one!!".to_string();
-        let _pk2 = decode_hex(
-            &"87922330C78D15BFEB2669625BA3ED911AD47EFC400B78C4F5E9F6FB5CFB4F2A".to_string(),
-        )?;
-        let _sig2 = decode_hex(&"AECE7B6A6FB85BE6F484F75D25EB09FC755A9C50500107DFB2478894C9875EE4151ADA9F905F40E09580BF7A4A952024FBAABD4FFAB8C0BC30B8FEAC300D7901".to_string())?;
-
-        let msg3 = "third one".to_string();
-        let _sig3 = decode_hex(&"103C8257859C43C75E28C55361C08B61D1C4BDA199FB5943D447F0903F5F1FF780FC77B8D0EAB80802E14A9BF7983C88175F0CCA6D6E9F3E47419A7A34B4710F".to_string())?;
-
-        assert_eq!(msg1.len(), msg2.len());
+	assert_eq!(msg1.len(), msg3.len());
 
         let mut circuit_data_targets: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> =
             HashMap::new();
 
         let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
-            msg1.as_bytes().len(),
+            msg1.len(),
             &mut circuit_data_targets,
         );
         assert!(circuit_data_targets.len() == 1);
         let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
-            msg2.as_bytes().len(),
+            msg2.len(),
             &mut circuit_data_targets,
         );
-        assert!(circuit_data_targets.len() == 1);
+        assert!(circuit_data_targets.len() == 2);
         let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
-            msg3.as_bytes().len(),
+            msg3.len(),
             &mut circuit_data_targets,
         );
         assert!(circuit_data_targets.len() == 2);
@@ -372,31 +365,31 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
 
-        let msg1 = "test message".to_string();
-        let pk1 = decode_hex(
-            &"087CFBF793E35C806B248FA82FC4B4F5A9EC7FFC6088187874AB1ED6519F935A".to_string(),
-        )?;
-        let sig1 = decode_hex(&"8158AD38E169B6CD61EE4AB90C041AF459D02C3CDF9D7F4E740CBD623DE34DF808D82AB405D43F4C7998076F63FAA84DCD1DFF5C91426877B51C93B22EDC790A".to_string())?;
+	const MSGLEN1: usize = 100;
+        const MSGLEN2: usize = 1000;
 
-        let msg2 = "second one!!".to_string();
-        let pk2 = decode_hex(
-            &"87922330C78D15BFEB2669625BA3ED911AD47EFC400B78C4F5E9F6FB5CFB4F2A".to_string(),
-        )?;
-        let sig2 = decode_hex(&"AECE7B6A6FB85BE6F484F75D25EB09FC755A9C50500107DFB2478894C9875EE4151ADA9F905F40E09580BF7A4A952024FBAABD4FFAB8C0BC30B8FEAC300D7901".to_string())?;
+	let msg1: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
+        let keys1 = KeyPair::generate();
+        let pk1 = keys1.pk.to_vec();
+        let sig1 = keys1.sk.sign(msg1.clone(), None).to_vec();
 
-        let msg3 = "third one".to_string();
-        let pk3 = decode_hex(
-            &"CA8C33194B4C06E205F0FE54C6D902C458278E60410845DFBBF6E2200304D8CF".to_string(),
-        )?;
-        let sig3 = decode_hex(&"103C8257859C43C75E28C55361C08B61D1C4BDA199FB5943D447F0903F5F1FF780FC77B8D0EAB80802E14A9BF7983C88175F0CCA6D6E9F3E47419A7A34B4710F".to_string())?;
+        let msg2: Vec<u8> = (0..MSGLEN2).map(|_| random::<u8>() as u8).collect();
+        let keys2 = KeyPair::generate();
+        let pk2 = keys2.pk.to_vec();
+        let sig2 = keys2.sk.sign(msg2.clone(), None).to_vec();
 
-        assert_eq!(msg1.len(), msg2.len());
+        let msg3: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
+        let keys3 = KeyPair::generate();
+        let pk3 = keys3.pk.to_vec();
+        let sig3 = keys3.sk.sign(msg3.clone(), None).to_vec();
+
+        assert_eq!(msg1.len(), msg3.len());
 
         let mut circuit_data_targets: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> =
             HashMap::new();
 
         let (d1, p1) = ed25519_proof_reuse_circuit::<F, C, D>(
-            msg1.as_bytes(),
+            &msg1,
             &sig1,
             &pk1,
             &mut circuit_data_targets,
@@ -404,15 +397,15 @@ mod tests {
         d1.verify(p1)?;
         assert!(circuit_data_targets.len() == 1);
         let (d2, p2) = ed25519_proof_reuse_circuit::<F, C, D>(
-            msg2.as_bytes(),
+            &msg2,
             &sig2,
             &pk2,
             &mut circuit_data_targets,
         )?;
         d2.verify(p2)?;
-        assert!(circuit_data_targets.len() == 1);
+        assert!(circuit_data_targets.len() == 2);
         let (d3, p3) = ed25519_proof_reuse_circuit::<F, C, D>(
-            msg3.as_bytes(),
+            &msg3,
             &sig3,
             &pk3,
             &mut circuit_data_targets,
@@ -427,14 +420,15 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
 
-        let msg = "test message".to_string();
-        let pk = decode_hex(
-            &"087CFBF793E35C806B248FA82FC4B4F5A9EC7FFC6088187874AB1ED6519F935A".to_string(),
-        )?;
-        let sig = decode_hex(&"8158AD38E169B6CD61EE4AB90C041AF459D02C3CDF9D7F4E740CBD623DE34DF808D82AB405D43F4C7998076F63FAA84DCD1DFF5C91426877B51C93B22EDC790A".to_string())?;
+	const MSGLEN: usize = 100;
+        
+        let msg: Vec<u8> = (0..MSGLEN).map(|_| random::<u8>() as u8).collect();
+        let keys = KeyPair::generate();
+        let pk = keys.pk.to_vec();
+        let sig = keys.sk.sign(msg.clone(), None).to_vec();
 
-        let (data, targets) = get_ed25519_targets::<F, C, D>(msg.as_bytes().len() * 8)?;
-        let proof = ed25519_proof::<F, C, D>(msg.as_bytes(), &sig, &pk, (data.clone(), targets))?;
+        let (data, targets) = get_ed25519_targets::<F, C, D>(msg.len() * 8)?;
+        let proof = ed25519_proof::<F, C, D>(&msg, &sig, &pk, (data.clone(), targets))?;
         data.verify(proof)
     }
 }

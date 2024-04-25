@@ -10,6 +10,7 @@ plonky2.workspace = true
 plonky2_u32.workspace = true
 plonky2_util.workspace = true
 plonky2_ecdsa.workspace = true
+rand.workspace = true
 
 anyhow = { version = "1.0.40", default-features = false }
 itertools = "0.10.5"
@@ -18,7 +19,6 @@ serde = "1.0.152"
 serde_with = { version = "2.2.0", features = ["hex"] }
 rayon = { version = "1.5.3" }
 hex = { version = "0.4.3" }
-rand = { version = "0.8.5", default-features = false, features = ["getrandom"] }
 
 [dev-dependencies]
 sha2 = { version = "0.10.6" }
