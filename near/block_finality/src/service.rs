@@ -44,8 +44,7 @@ pub async fn prove_current_epoch_block(
         prev_epoch_block_proof_bytes,
         &prev_epoch_block_verifier_data.common,
     )
-        .expect("Error serializing proof");
-
+    .expect("Error serializing proof");
 
     let (current_block_hash, current_block_header) = load_block_from_rpc(hash).await?;
     let (_, next_block_header) = load_block_from_rpc(next_hash).await?;
@@ -53,9 +52,6 @@ pub async fn prove_current_epoch_block(
     let msg_to_sign = generate_signed_message(
         current_block_header.height(),
         next_block_header.height(),
-        next_block_header
-            .prev_height()
-            .expect("No prev_height in next_block_header"),
         *next_block_header.prev_hash(),
     );
 
@@ -71,29 +67,39 @@ pub async fn prove_current_epoch_block(
         .iter()
         .map(|value| borsh::to_vec(value).unwrap())
         .collect();
-    let ((currentblock_header_data, currentblock_header_proof),
-        (currentblock_data, currentblock_proof)) = timed!(timing_tree, "prove current block header", crate::prove_block::prove_current_block::<F, C, D>(
-        &current_block_hash_bytes,
-        &current_block_header_bytes,
-        &msg_to_sign,
-        approvals_bytes,
-        validators_bytes,
-        client,
-        (&prev_epoch_block_verifier_data, &prev_epoch_block_proof),
-        timing_tree
-    )?);
+    let (
+        (currentblock_header_data, currentblock_header_proof),
+        (currentblock_data, currentblock_proof),
+    ) = timed!(
+        timing_tree,
+        "prove current block header",
+        crate::prove_block::prove_current_block::<F, C, D>(
+            &current_block_hash_bytes,
+            &current_block_header_bytes,
+            &msg_to_sign,
+            approvals_bytes,
+            validators_bytes,
+            client,
+            (&prev_epoch_block_verifier_data, &prev_epoch_block_proof),
+            timing_tree
+        )?
+    );
 
     info!("Proof size {}", currentblock_proof.to_bytes().len());
 
-    let (rec_data, rec_proof) = timed!(timing_tree, "aggregate final proof using BN128 config", recursive_proof::<F, Cbn128, C, D>(
-        (
-            &currentblock_data.common,
-            &currentblock_data.verifier_only,
-            &currentblock_proof,
-        ),
-        None,
-        Some(&currentblock_proof.public_inputs),
-    )?);
+    let (rec_data, rec_proof) = timed!(
+        timing_tree,
+        "aggregate final proof using BN128 config",
+        recursive_proof::<F, Cbn128, C, D>(
+            (
+                &currentblock_data.common,
+                &currentblock_data.verifier_only,
+                &currentblock_proof,
+            ),
+            None,
+            Some(&currentblock_proof.public_inputs),
+        )?
+    );
 
     info!(
         "Proof with BN128 config size {}",
@@ -116,8 +122,7 @@ pub async fn prove_current_epoch_block(
         .to_bytes(&gate_serializer)
         .expect("Error reading verifier data");
 
-
-    let mut path = format!("../proofs/{hash_hex}/bin/prev_epoch_block_data.bin");
+    let mut path = format!("{STORAGE_PATH}/{hash_hex}/bin/prev_epoch_block_data.bin");
     fs::write(path, verifier_data_bytes.clone()).expect("Verifier data writing error");
     path = format!("{STORAGE_PATH}/{hash_hex}/bin/prev_epoch_block_proof.bin");
     fs::write(path, currentblock_header_proof.to_bytes()).expect("Proof writing error");
@@ -128,7 +133,7 @@ pub async fn prove_current_epoch_block(
         .to_bytes(&gate_serializer)
         .expect("Error reading verifier data");
 
-    let mut path = format!("../proofs/{hash_hex}/bin/current_block_data.bin");
+    let mut path = format!("{STORAGE_PATH}/{hash_hex}/bin/current_block_data.bin");
     fs::write(path, verifier_data_bytes.clone()).expect("Verifier data writing error");
     path = format!("{STORAGE_PATH}/{hash_hex}/bin/current_block_proof.bin");
     fs::write(path, rec_proof.to_bytes()).expect("Proof writing error");
@@ -148,11 +153,13 @@ pub async fn prove_current_epoch_block(
     writer = BufWriter::new(file);
     serde_json::to_writer_pretty(&mut writer, &rec_data.common)?;
 
-
     Ok(())
 }
 
-pub async fn prove_prev_epoch_block(prev_block_hash: &str, timing_tree: &mut TimingTree) -> anyhow::Result<()> {
+pub async fn prove_prev_epoch_block(
+    prev_block_hash: &str,
+    timing_tree: &mut TimingTree,
+) -> anyhow::Result<()> {
     const D: usize = 2;
     type C = PoseidonGoldilocksConfig;
     type F = <C as GenericConfig<D>>::F;
@@ -163,24 +170,32 @@ pub async fn prove_prev_epoch_block(prev_block_hash: &str, timing_tree: &mut Tim
     let prev_epoch_block_header_bytes = borsh::to_vec(&prev_epoch_block_header)?;
     let prev_epoch_block_hash_bytes = borsh::to_vec(&prev_epoch_block_hash)?;
 
-    let (prev_epoch_block_data, prev_epoch_block_proof) = timed!(timing_tree, "prove previous block", prove_header_hash::<F, C, D>(
-        &prev_epoch_block_hash_bytes,
-        &prev_epoch_block_header_bytes[(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES - PK_BYTES)..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES)],
-        HeaderData {
-            prev_hash: prev_epoch_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)].to_vec(),
-            inner_lite: prev_epoch_block_header_bytes
-                [(TYPE_BYTE + PK_BYTES)..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)]
-                .to_vec(),
-            inner_rest: prev_epoch_block_header_bytes[(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)
-                ..(prev_epoch_block_header_bytes.len() - SIG_BYTES - TYPE_BYTE)]
-                .to_vec(),
-        },
-    timing_tree)?);
+    let (prev_epoch_block_data, prev_epoch_block_proof) = timed!(
+        timing_tree,
+        "prove previous block",
+        prove_header_hash::<F, C, D>(
+            &prev_epoch_block_hash_bytes,
+            &prev_epoch_block_header_bytes[(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES
+                - PK_BYTES
+                - PK_BYTES)
+                ..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES)],
+            HeaderData {
+                prev_hash: prev_epoch_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)]
+                    .to_vec(),
+                inner_lite: prev_epoch_block_header_bytes
+                    [(TYPE_BYTE + PK_BYTES)..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)]
+                    .to_vec(),
+                inner_rest: prev_epoch_block_header_bytes[(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)
+                    ..(prev_epoch_block_header_bytes.len() - SIG_BYTES - TYPE_BYTE)]
+                    .to_vec(),
+            },
+            timing_tree
+        )?
+    );
 
     info!("Proof size {}", prev_epoch_block_proof.to_bytes().len());
 
-    let hash_u32: Vec<u32> = prev_epoch_block_proof
-        .public_inputs[0..8]
+    let hash_u32: Vec<u32> = prev_epoch_block_proof.public_inputs[0..8]
         .iter()
         .map(|x| x.0 as u32)
         .collect();
@@ -217,4 +232,147 @@ pub async fn prove_prev_epoch_block(prev_block_hash: &str, timing_tree: &mut Tim
     serde_json::to_writer_pretty(&mut writer, &prev_epoch_block_data.common)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod service_tests {
+    use crate::utils::{load_block_header, load_validators};
+    use anyhow::Result;
+    use log::{info, Level};
+    use near_primitives::borsh::BorshSerialize;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
+    use super::*;
+
+    #[test]
+    fn test_prove_current_epoch_block() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        let path = "../data/block_header_small.json".to_string();
+        let (current_block_hash, current_block_header) = load_block_header(&path)?;
+        let path = "../data/next_block_header_small.json".to_string();
+        let (_, next_block_header) = load_block_header(&path)?;
+        let path = "../data/prev_epoch_block_header_small.json".to_string();
+        let (prev_epoch_block_hash, prev_epoch_block_header) = load_block_header(&path)?;
+        let path = "../data/validators_ordered_small.json".to_string();
+        let validators = load_validators(&path)?;
+        let validators_bytes: Vec<Vec<u8>> = validators
+            .iter()
+            .map(|value| borsh::to_vec(value).unwrap())
+            .collect();
+
+        let current_block_header_bytes = borsh::to_vec(&current_block_header)?;
+        let current_block_hash_bytes = borsh::to_vec(&current_block_hash)?;
+        let prev_epoch_block_header_bytes = borsh::to_vec(&prev_epoch_block_header)?;
+        let prev_epoch_block_hash_bytes = borsh::to_vec(&prev_epoch_block_hash)?;
+
+        let approvals_bytes: Vec<Vec<u8>> = next_block_header
+            .approvals()
+            .iter()
+            .map(|approval| borsh::to_vec(approval).unwrap())
+            .collect();
+        // for this test msg_to_sign containes a block_hash & next_block_header.height()
+        let msg_to_sign = generate_signed_message(
+            current_block_header.height(),
+            next_block_header.height(),
+            *next_block_header.prev_hash(),
+        );
+
+        let mut timing_tree = TimingTree::new("prove previous block", Level::Info);
+
+        let (data, proof) = timed!(
+            timing_tree,
+            "prove hash of previous block",
+            prove_header_hash::<F, C, D>(
+                &prev_epoch_block_hash_bytes,
+                &prev_epoch_block_header_bytes[(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES
+                    - PK_BYTES
+                    - PK_BYTES)
+                    ..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES)],
+                HeaderData {
+                    prev_hash: prev_epoch_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)].to_vec(),
+                    inner_lite: prev_epoch_block_header_bytes
+                        [(TYPE_BYTE + PK_BYTES)..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)]
+                        .to_vec(),
+                    inner_rest: prev_epoch_block_header_bytes[(TYPE_BYTE
+                        + PK_BYTES
+                        + INNER_LITE_BYTES)
+                        ..(prev_epoch_block_header_bytes.len() - SIG_BYTES - TYPE_BYTE)]
+                        .to_vec(),
+                },
+                &mut timing_tree
+            )?
+        );
+
+        let mut timing_tree = TimingTree::new("prove current block", Level::Info);
+
+        let (
+            (_currentblock_header_data, _currentblock_header_proof),
+            (_currentblock_data, currentblock_proof),
+        ) = timed!(
+            timing_tree,
+            "prove current block header",
+            crate::prove_block::prove_current_block::<F, C, D>(
+                &current_block_hash_bytes,
+                &current_block_header_bytes,
+                &msg_to_sign,
+                approvals_bytes,
+                validators_bytes,
+                None,
+                (
+                    &data.verifier_data(),
+                    &proof
+                ),
+                &mut timing_tree
+            )?
+        );
+
+        info!("Proof size {}", currentblock_proof.to_bytes().len());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_prove_prev_epoch_block() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        let path = "../data/prev_epoch_block_header_small.json".to_string();
+        let (prev_epoch_block_hash, prev_epoch_block_header) = load_block_header(&path)?;
+
+        let prev_epoch_block_header_bytes = borsh::to_vec(&prev_epoch_block_header)?;
+        let prev_epoch_block_hash_bytes = borsh::to_vec(&prev_epoch_block_hash)?;
+
+        let mut timing_tree = TimingTree::new("prove previous block", Level::Info);
+
+        let (data, proof) = timed!(
+            timing_tree,
+            "prove hash of previous block",
+            prove_header_hash::<F, C, D>(
+                &prev_epoch_block_hash_bytes,
+                &prev_epoch_block_header_bytes[(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES
+                    - PK_BYTES
+                    - PK_BYTES)
+                    ..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES)],
+                HeaderData {
+                    prev_hash: prev_epoch_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)].to_vec(),
+                    inner_lite: prev_epoch_block_header_bytes
+                        [(TYPE_BYTE + PK_BYTES)..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)]
+                        .to_vec(),
+                    inner_rest: prev_epoch_block_header_bytes[(TYPE_BYTE
+                        + PK_BYTES
+                        + INNER_LITE_BYTES)
+                        ..(prev_epoch_block_header_bytes.len() - SIG_BYTES - TYPE_BYTE)]
+                        .to_vec(),
+                },
+                &mut timing_tree
+            )?
+        );
+
+        info!("Proof size {}", proof.to_bytes().len());
+
+        Ok(())
+    }
 }

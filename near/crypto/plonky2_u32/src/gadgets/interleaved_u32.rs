@@ -1,15 +1,12 @@
-use alloc::vec::Vec;
-use plonky2::field::extension::Extendable;
-use plonky2::field::packed::PackedField;
-use plonky2::hash::hash_types::RichField;
-use plonky2::iop::target::{BoolTarget, Target};
-use plonky2::plonk::circuit_builder::CircuitBuilder;
 use crate::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
 use crate::gates::interleave_u32::U32InterleaveGate;
 use crate::gates::uninterleave_to_b32::UninterleaveToB32Gate;
 use crate::gates::uninterleave_to_u32::UninterleaveToU32Gate;
-
-
+use alloc::vec::Vec;
+use plonky2::field::extension::Extendable;
+use plonky2::hash::hash_types::RichField;
+use plonky2::iop::target::{BoolTarget, Target};
+use plonky2::plonk::circuit_builder::CircuitBuilder;
 
 pub struct B32Target(pub Target);
 
@@ -53,7 +50,7 @@ pub trait CircuitBuilderB32<F: RichField + Extendable<D>, const D: usize> {
 }
 
 impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderB32<F, D>
-for CircuitBuilder<F, D>
+    for CircuitBuilder<F, D>
 {
     // not := 0xFFFFFFFF - x
     fn not_u32(&mut self, a: U32Target) -> U32Target {
@@ -272,13 +269,11 @@ for CircuitBuilder<F, D>
 #[cfg(test)]
 mod tests {
     use alloc::vec;
-    use alloc::vec::Vec;
     use anyhow::Result;
     use plonky2::field::types::{Field, PrimeField64};
     use plonky2::iop::witness::PartialWitness;
     use plonky2::plonk::circuit_data::CircuitConfig;
     use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-    use crate::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
 
     use super::*;
     use crate::witness::WitnessU32;

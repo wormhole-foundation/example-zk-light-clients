@@ -1,11 +1,11 @@
 [workspace]
 members = [
-  "block_finality",
   "crypto/plonky2_ed25519",
   "crypto/plonky2_sha512",
+  "block_finality",
   "crypto/plonky2_sha256_u32",
   "crypto/plonky2_bn128"
-]
+, "xtask"]
 
 [workspace.package]
 authors     = [ "Zpoken" ]
@@ -38,13 +38,13 @@ sha2                = { version = "0.10" }
 sha3                = { version = "0.10" }
 static_assertions   = { version = "1.1.0" }
 unroll              = { version = "0.1.5" }
-rand 		            = { version = "0.8.4" }
+rand                = { version = "0.8.4" }
 
 # Local dependencies
-plonky2             = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "7a6566d98ab1a93886b066bdcdd63043fb722021", features = ["parallel"] }
-plonky2_field       = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "7a6566d98ab1a93886b066bdcdd63043fb722021" }
-plonky2_util        = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "7a6566d98ab1a93886b066bdcdd63043fb722021" }
-plonky2_maybe_rayon = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "7a6566d98ab1a93886b066bdcdd63043fb722021", features = ["parallel"] }
+plonky2             = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "2244a9d802aa74f15c32ca7f4139959c61126819", features = ["parallel"] }
+plonky2_field       = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "2244a9d802aa74f15c32ca7f4139959c61126819" }
+plonky2_util        = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "2244a9d802aa74f15c32ca7f4139959c61126819" }
+plonky2_maybe_rayon = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "2244a9d802aa74f15c32ca7f4139959c61126819", features = ["parallel"] }
 plonky2_u32         = { path = "crypto/plonky2_u32" }
 plonky2_ecdsa       = { path = "crypto/plonky2_ecdsa" }
 plonky2_ed25519     = { path = "crypto/plonky2_ed25519" }

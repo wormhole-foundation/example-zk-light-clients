@@ -1,7 +1,6 @@
-use alloc::{format, vec};
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::hash::Hasher;
+use alloc::{format, vec};
 use core::ops::Range;
 
 use plonky2::field::extension::Extendable;
@@ -205,7 +204,7 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for U32InterleaveG
                         row,
                         i,
                     }
-                        .adapter(),
+                    .adapter(),
                 )
             })
             .collect()
@@ -275,7 +274,7 @@ pub struct U32InterleaveGenerator {
 
 // Populate the bit wires and the x_interleaved wire, given that the x wire's value has been set
 impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D>
-for U32InterleaveGenerator
+    for U32InterleaveGenerator
 {
     fn id(&self) -> String {
         "U32InterleaveGenerator".to_string()

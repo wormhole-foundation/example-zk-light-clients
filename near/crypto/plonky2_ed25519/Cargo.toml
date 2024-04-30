@@ -14,6 +14,7 @@ plonky2_u32.workspace = true
 plonky2_maybe_rayon.workspace = true
 plonky2_util.workspace = true
 curve25519-dalek.workspace = true
+ed25519-compact.workspace = true
 
 itertools = { version = "0.10.0", default-features = false, features = ["use_alloc"] }
 num = { version = "0.4", default-features = false, features = ["alloc", "rand"] }
@@ -38,3 +39,5 @@ opt-level = 3
 
 [profile.test]
 opt-level = 0
+
+

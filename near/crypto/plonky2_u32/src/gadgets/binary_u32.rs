@@ -1,12 +1,11 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
+use crate::gadgets::arithmetic_u32::U32Target;
 use plonky2::field::extension::Extendable;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::target::BoolTarget;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
-use crate::gadgets::arithmetic_u32::U32Target;
-
 
 /// Bin32Target is an inefficient representation of 32x BoolTargets
 /// Whenever possible, use interleaved_u32::B32Target instead
@@ -26,7 +25,7 @@ pub trait CircuitBuilderBU32<F: RichField + Extendable<D>, const D: usize> {
 }
 
 impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderBU32<F, D>
-for CircuitBuilder<F, D>
+    for CircuitBuilder<F, D>
 {
     fn convert_u32_bin32(&mut self, a: U32Target) -> Bin32Target {
         Bin32Target {

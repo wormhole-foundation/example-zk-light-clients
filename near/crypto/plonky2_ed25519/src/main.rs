@@ -83,3 +83,30 @@ fn main() -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod service_tests {
+    use super::*;
+    use plonky2::plonk::{circuit_data, config::PoseidonGoldilocksConfig};
+    use plonky2_field::types::Field;
+    use rand::random;
+    use ed25519_compact::*;
+
+    #[test]
+    fn test_prove_ed25519() -> Result<()> {
+        const D: usize = 2;
+    	type C = PoseidonGoldilocksConfig;
+    	type F = <C as GenericConfig<D>>::F;
+
+	const MSGLEN: usize = 100;
+
+        let msg: Vec<u8> = (0..MSGLEN).map(|_| random::<u8>() as u8).collect();
+        let keys = KeyPair::generate();
+        let pk = keys.pk.to_vec();
+        let sig = keys.sk.sign(msg.clone(), None).to_vec();
+
+    	prove_ed25519::<F, C, D>(&msg, &sig, &pk)?;
+
+    	Ok(())
+    }
+}

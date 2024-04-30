@@ -3,9 +3,11 @@ use std::collections::HashMap;
 use anyhow::Result;
 use log::Level;
 use near_primitives::{borsh, hash::hash};
+use plonky2::plonk::circuit_data::{CommonCircuitData, VerifierOnlyCircuitData};
+use plonky2::plonk::config::Hasher;
 use plonky2::{
     hash::hash_types::RichField,
-    iop::witness::{PartialWitness, WitnessWrite},
+    iop::witness::PartialWitness,
     plonk::{
         circuit_builder::CircuitBuilder,
         circuit_data::{CircuitConfig, CircuitData},
@@ -14,28 +16,26 @@ use plonky2::{
     },
     util::timing::TimingTree,
 };
-use plonky2::plonk::circuit_data::{CommonCircuitData, VerifierOnlyCircuitData};
-use plonky2::plonk::config::Hasher;
 use plonky2_field::extension::Extendable;
 
-use plonky2_ed25519::gadgets::eddsa::{ed25519_circuit, EDDSATargets, fill_ecdsa_targets};
+use plonky2_ed25519::gadgets::eddsa::{ed25519_circuit, fill_ecdsa_targets, EDDSATargets};
 use plonky2_sha256_u32::sha256::{CircuitBuilderHashSha2, WitnessHashSha2};
 use plonky2_sha256_u32::types::CircuitBuilderHash;
 
-use crate::{recursion::recursive_proof, utils::u8bit_to_u8byte};
+use crate::recursion::recursive_proof;
 use crate::utils::vec_u32_to_u8;
 
 pub const SHA256_BLOCK: usize = 512;
 
-/// Verifies that two proofs for hashes are valid & aggregates them into one proof. 
+/// Verifies that two proofs for hashes are valid & aggregates them into one proof.
 /// Concatenates hashes into one array, proves that a hash of the concatenation is equal to the third hash.
 /// Aggregates two proofs: aggregation of first two hashes & proof of the third one, sets the third hash as public inputs.
 /// All proving functions use u32 values.
 /// # Arguments
 ///
-/// * `pis_hash_1` - A first hash represented as an array of field elements.
-/// * `pis_hash_2` - A second hash represented as an array of field elements.
-/// * `final_hash` - A hash of concatenation of pis_hash_1 & pis_hash_2.
+/// * `pis_hash_1` - A first hash represented as an array of field elements as u32.
+/// * `pis_hash_2` - A second hash represented as an array of field elements as u32.
+/// * `final_hash` - A hash of concatenation of hashes as u8.
 /// * `(hash_common_1, hash_verifier_1, hash_proof_1)` - A proof for the first hash.
 /// * `hash_data_proof_2` - A proof for the second hash (optional value).
 /// * `set_pis_1` - A flag that indicates whether to set first hash as public inputs in aggregation.
@@ -48,7 +48,7 @@ pub const SHA256_BLOCK: usize = 512;
 /// - `ProofWithPublicInputs<F, C, D>`: The proof along with the third hash as public inputs.
 pub fn prove_sub_hashes_u32<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     set_pis_1: bool,
@@ -67,9 +67,9 @@ pub fn prove_sub_hashes_u32<
         &ProofWithPublicInputs<F, C, D>,
     )>,
 ) -> Result<(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)>
-    where
-        C::Hasher: AlgebraicHasher<F>,
-        [(); C::Hasher::HASH_SIZE]:,
+where
+    C::Hasher: AlgebraicHasher<F>,
+    [(); C::Hasher::HASH_SIZE]:,
 {
     let mut pis: Option<&[F]> = Option::None;
     let mut vec = vec![];
@@ -100,12 +100,12 @@ pub fn prove_sub_hashes_u32<
             .collect();
         msg.append(&mut hash);
     }
-    let mut final_hash_bytes = vec![];
-    if final_hash.is_some() {
-        final_hash_bytes = final_hash.unwrap().to_vec();
-    } else {
-        final_hash_bytes = borsh::to_vec(&hash(&msg))?;
-    }
+
+    let final_hash_bytes = match final_hash {
+        Some(final_hash) => final_hash.to_vec(),
+        _ => borsh::to_vec(&hash(&msg))?,
+    };
+
     let (hash_d, hash_p) = sha256_proof_u32(&msg, &final_hash_bytes)?;
     let (result_d, result_p) = recursive_proof(
         (&inner_data.common, &inner_data.verifier_only, &inner_proof),
@@ -114,8 +114,6 @@ pub fn prove_sub_hashes_u32<
     )?;
     Ok((result_d, result_p))
 }
-
-
 
 /// Computes a SHA-256 proof with public inputs in format of u32 values for a given message and its hash.
 ///
@@ -153,11 +151,11 @@ pub fn prove_sub_hashes_u32<
 /// let output = hex::decode(hash).unwrap();
 ///
 /// // Compute SHA-256 proof
-/// let (circuit_data, proof) = sha256_proof_u32::<F, C, D>(&input, &output)?;;
+/// let (circuit_data, proof) = sha256_proof_u32::<F, C, D>(&input, &output).expect("Error proving sha256 hash");
 /// ```
 pub fn sha256_proof_u32<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     msg: &[u8],
@@ -181,7 +179,7 @@ pub fn sha256_proof_u32<
 
 pub fn get_ed25519_circuit_targets<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     msg_len_in_bits: usize,
@@ -207,7 +205,7 @@ pub fn get_ed25519_circuit_targets<
 /// Creating ED25519 proof reusing proving schema and targets
 pub fn ed25519_proof_reuse_circuit<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
     msg: &[u8],
@@ -238,11 +236,7 @@ pub fn ed25519_proof_reuse_circuit<
 /// # Returns
 ///
 /// Returns a result containing the computed Ed25519 proof with public inputs.
-pub fn ed25519_proof<
-    F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
-    const D: usize,
->(
+pub fn ed25519_proof<F: RichField + Extendable<D>, C: GenericConfig<D, F = F>, const D: usize>(
     msg: &[u8],
     sigv: &[u8],
     pkv: &[u8],
@@ -259,13 +253,182 @@ pub fn ed25519_proof<
 /// Computes EDD5519 targets and proving schema depending on specific message length in bits.
 pub fn get_ed25519_targets<
     F: RichField + Extendable<D>,
-    C: GenericConfig<D, F=F>,
+    C: GenericConfig<D, F = F>,
     const D: usize,
 >(
-    msg_len_in_bits: usize
+    msg_len_in_bits: usize,
 ) -> anyhow::Result<(CircuitData<F, C, D>, EDDSATargets)> {
     let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::wide_ecc_config());
     let targets = ed25519_circuit(&mut builder, msg_len_in_bits);
     let circuit_data = builder.build::<C>();
     Ok((circuit_data, targets))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::decode_hex;
+    use plonky2::plonk::{circuit_data, config::PoseidonGoldilocksConfig};
+    use plonky2_field::types::Field;
+    use rand::random;
+    use ed25519_compact::*;
+
+    #[test]
+    fn test_prove_sub_hashes_u32_aggregation_correctness() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        const MSGLEN: usize = 1000;
+        let msg1: Vec<u8> = (0..MSGLEN).map(|_| random::<u8>() as u8).collect();
+        let hash1 = hash(&msg1);
+        let msg2: Vec<u8> = (0..MSGLEN).map(|_| random::<u8>() as u8).collect();
+        let hash2 = hash(&msg2);
+        let msg3 = [hash1.0, hash2.0].concat();
+        let hash3 = hash(&msg3);
+
+        let (d1, p1) = sha256_proof_u32::<F, C, D>(&msg1, &hash1.0)?;
+        d1.verify(p1.clone())?;
+        let (d2, p2) = sha256_proof_u32::<F, C, D>(&msg2, &hash2.0)?;
+        d2.verify(p2.clone())?;
+        let (d3, p3) = sha256_proof_u32::<F, C, D>(&msg3, &hash3.0)?;
+        d3.verify(p3.clone())?;
+
+        let (_data, _proof) = prove_sub_hashes_u32(
+            true,
+            true,
+            &p1.public_inputs,
+            &p2.public_inputs,
+            Some(&hash3.0.to_vec()),
+            (&d1.common, &d1.verifier_only, &p1),
+            Some((&d2.common, &d2.verifier_only, &p2)),
+        )?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_sha256_proof_u32_computation_with_public_inputs() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        const MSGLEN: usize = 1000;
+        let msg: Vec<u8> = (0..MSGLEN).map(|_| random::<u8>() as u8).collect();
+        let hash = hash(&msg);
+
+        let (_data, _proof) = sha256_proof_u32::<F, C, D>(&msg, &hash.0)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_ed25519_circuit_targets_caching() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+	const MSGLEN1: usize = 100;
+	const MSGLEN2: usize = 1000;        
+	
+	let msg1: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
+	let msg2: Vec<u8> = (0..MSGLEN2).map(|_| random::<u8>() as u8).collect();
+	let msg3: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
+
+	assert_eq!(msg1.len(), msg3.len());
+
+        let mut circuit_data_targets: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> =
+            HashMap::new();
+
+        let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
+            msg1.len(),
+            &mut circuit_data_targets,
+        );
+        assert!(circuit_data_targets.len() == 1);
+        let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
+            msg2.len(),
+            &mut circuit_data_targets,
+        );
+        assert!(circuit_data_targets.len() == 2);
+        let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
+            msg3.len(),
+            &mut circuit_data_targets,
+        );
+        assert!(circuit_data_targets.len() == 2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_ed25519_proof_reuse_circuit_reusability() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+	const MSGLEN1: usize = 100;
+        const MSGLEN2: usize = 1000;
+
+	let msg1: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
+        let keys1 = KeyPair::generate();
+        let pk1 = keys1.pk.to_vec();
+        let sig1 = keys1.sk.sign(msg1.clone(), None).to_vec();
+
+        let msg2: Vec<u8> = (0..MSGLEN2).map(|_| random::<u8>() as u8).collect();
+        let keys2 = KeyPair::generate();
+        let pk2 = keys2.pk.to_vec();
+        let sig2 = keys2.sk.sign(msg2.clone(), None).to_vec();
+
+        let msg3: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
+        let keys3 = KeyPair::generate();
+        let pk3 = keys3.pk.to_vec();
+        let sig3 = keys3.sk.sign(msg3.clone(), None).to_vec();
+
+        assert_eq!(msg1.len(), msg3.len());
+
+        let mut circuit_data_targets: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> =
+            HashMap::new();
+
+        let (d1, p1) = ed25519_proof_reuse_circuit::<F, C, D>(
+            &msg1,
+            &sig1,
+            &pk1,
+            &mut circuit_data_targets,
+        )?;
+        d1.verify(p1)?;
+        assert!(circuit_data_targets.len() == 1);
+        let (d2, p2) = ed25519_proof_reuse_circuit::<F, C, D>(
+            &msg2,
+            &sig2,
+            &pk2,
+            &mut circuit_data_targets,
+        )?;
+        d2.verify(p2)?;
+        assert!(circuit_data_targets.len() == 2);
+        let (d3, p3) = ed25519_proof_reuse_circuit::<F, C, D>(
+            &msg3,
+            &sig3,
+            &pk3,
+            &mut circuit_data_targets,
+        )?;
+        assert!(circuit_data_targets.len() == 2);
+        d3.verify(p3)
+    }
+
+    #[test]
+    fn test_ed25519_proof_without_reusing_circuit() -> Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+	const MSGLEN: usize = 100;
+        
+        let msg: Vec<u8> = (0..MSGLEN).map(|_| random::<u8>() as u8).collect();
+        let keys = KeyPair::generate();
+        let pk = keys.pk.to_vec();
+        let sig = keys.sk.sign(msg.clone(), None).to_vec();
+
+        let (data, targets) = get_ed25519_targets::<F, C, D>(msg.len() * 8)?;
+        let proof = ed25519_proof::<F, C, D>(&msg, &sig, &pk, (data.clone(), targets))?;
+        data.verify(proof)
+    }
 }

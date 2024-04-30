@@ -13,5 +13,5 @@ num = { version = "0.4", default-features = false }
 plonky2.workspace = true
 
 [dev-dependencies]
-plonky2 = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "7a6566d98ab1a93886b066bdcdd63043fb722021", default-features = false, features = ["gate_testing"] }
+plonky2 = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "2244a9d802aa74f15c32ca7f4139959c61126819", default-features = false, features = ["gate_testing"] }
 rand = { version = "0.8.4", default-features = false, features = ["getrandom"] }

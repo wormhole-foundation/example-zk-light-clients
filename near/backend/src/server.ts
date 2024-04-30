@@ -8,6 +8,8 @@ export const prisma = new PrismaClient();
 export const app = express();
 const port = 9024;
 async function main() {
+  require('log-timestamp');
+
   app.use(express.json());
 
   // Register API routes

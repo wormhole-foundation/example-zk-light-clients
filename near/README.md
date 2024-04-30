@@ -21,16 +21,16 @@ defined set of validators ======> defined next_bp_hash ======> defined block has
 <!-- ![Illustrative scheme](/schemes/Illustrative_scheme.png) -->
 
 <figure>
-  <img src="/schemes/Illustrative_scheme.png" alt="Architecture Diagram">
+  <img src="/near/schemes/Illustrative_scheme.png" alt="Architecture Diagram">
   <figcaption>Figure: Illustrative Scheme for Block Proving.</figcaption>
 </figure>
 
 ### Input parameters for proof generation
-1. Block for which the proof is generated `(epoch N)` [Example](https://github.com/ZpokenWeb3/zk-light-client-implementation/blob/main/script/data/block-A6Gcz5uXxyTrigefyr48AXwag6gB7D6txzPSR3jBqqg2/block_header.json)
+1. Block for which the proof is generated `(epoch N)` [Example](/near/script/data/block-A6Gcz5uXxyTrigefyr48AXwag6gB7D6txzPSR3jBqqg2/block_header.json)
 
-2. Block of the previous epoch `(epoch N-1)` [Example](https://github.com/ZpokenWeb3/zk-light-client-implementation/blob/main/script/data/block-A6Gcz5uXxyTrigefyr48AXwag6gB7D6txzPSR3jBqqg2/block_header.json)
+2. Block of the previous epoch `(epoch N-1)` [Example](/near/script/data/block-A6Gcz5uXxyTrigefyr48AXwag6gB7D6txzPSR3jBqqg2/block_header.json)
 
-3. List of block producers for `epoch N ` [Example](https://github.com/ZpokenWeb3/zk-light-client-implementation/blob/main/script/data/block-A6Gcz5uXxyTrigefyr48AXwag6gB7D6txzPSR3jBqqg2/validators_ordered.json)
+3. List of block producers for `epoch N ` [Example](/near/script/data/block-A6Gcz5uXxyTrigefyr48AXwag6gB7D6txzPSR3jBqqg2/validators_ordered.json)
 
 
 ## Near State Proofs
@@ -42,6 +42,6 @@ defined set of validators ======> defined next_bp_hash ======> defined block has
 - This ensures the data's validity and its presence in a specific blockchain state.
 
 > [!TIP]
-> Read the example here [NEAR_STATE_PROOFS.md](/near_state_proofs/NEAR_STATE_PROOFS.md)
+> Read the example here [NEAR_STATE_PROOFS.md](/near/near_state_proofs/NEAR_STATE_PROOFS.md)
 
 Developed by [Zpoken Cryptography Team](https://zpoken.io/)

@@ -204,3 +204,176 @@ where
     timing.print();
     Ok((data_new, proof_new))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::prove_primitives::two_thirds;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
+    use plonky2_field::types::Field;
+    use rand::random;
+
+    #[test]
+    fn test_recursive_proof_valid() -> anyhow::Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+        // choose 1/3 to check whether func works with 2/3 of the value
+        let v1_3: u64 = random::<u32>() as u64;
+        let v: u64 = v1_3 * 3;
+        // more then 2/3
+        let v1: u64 = ((v / 3) * 2) + 5;
+
+        let v_bits = v.to_be_bytes();
+        let v_i_bits = v1.to_be_bytes();
+        let (cd, proof) = two_thirds::<F, C, D>(&v_i_bits, &v_bits)?;
+        cd.verify(proof.clone())?;
+
+        let recursive_data =
+            recursive_proof::<F, C, C, D>((&cd.common, &cd.verifier_only, &proof), None, None);
+        assert!(recursive_data.is_ok());
+        let (recursive_cd, recursive_proof) = recursive_data?;
+        assert!(recursive_cd.verify(recursive_proof).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_recursive_proof_invalid() {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        // choose 1/3 to check whether func works with 2/3 of the value
+        let v1_3: u64 = random::<u32>() as u64;
+        let v: u64 = v1_3 * 3;
+        // more then 2/3
+        let v1: u64 = ((v / 3) * 2) + 5;
+
+        let v_bits = v.to_be_bytes();
+        let v_i_bits = v1.to_be_bytes();
+        let (cd, proof) = two_thirds::<F, C, D>(&v_i_bits, &v_bits).unwrap();
+        cd.verify(proof.clone()).unwrap();
+        let mut modified_proof = proof.clone();
+
+        modified_proof.public_inputs[proof.public_inputs.len() - 1] = F::from_canonical_u64(10000);
+
+        let recursive_data = recursive_proof::<F, C, C, D>(
+            (&cd.common, &cd.verifier_only, &modified_proof),
+            None,
+            None,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_recursive_proofs_valid() -> anyhow::Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        // choose 1/3 to check whether func works with 2/3 of the value
+        let v1_3: u64 = random::<u32>() as u64;
+        let v: u64 = v1_3 * 3;
+        // more then 2/3
+        let v1: u64 = ((v / 3) * 2) + 5;
+
+        let v_bits = v.to_be_bytes();
+        let v_i_bits = v1.to_be_bytes();
+        let lhs_data = two_thirds::<F, C, D>(&v_i_bits, &v_bits)?;
+        let rhs_data = two_thirds::<F, C, D>(&v_i_bits, &v_bits)?;
+
+        let data_proofs = vec![lhs_data, rhs_data];
+
+        let recursive_data = recursive_proofs::<F, C, D>(&data_proofs, None);
+        assert!(recursive_data.is_ok());
+        let (recursive_cd, recursive_proof) = recursive_data?;
+        assert!(recursive_cd.verify(recursive_proof).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_recursive_proofs_invalid() {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        // choose 1/3 to check whether func works with 2/3 of the value
+        let v1_3: u64 = random::<u32>() as u64;
+        let v: u64 = v1_3 * 3;
+        // more then 2/3
+        let v1: u64 = ((v / 3) * 2) + 5;
+
+        let v_bits = v.to_be_bytes();
+        let v_i_bits = v1.to_be_bytes();
+        let lhs_data = two_thirds::<F, C, D>(&v_i_bits, &v_bits).unwrap();
+        let rhs_data = two_thirds::<F, C, D>(&v_i_bits, &v_bits).unwrap();
+
+        let (_, mut modified_proof) = rhs_data.clone();
+
+        modified_proof.public_inputs[rhs_data.1.public_inputs.len() - 1] =
+            F::from_canonical_u64(10000);
+
+        let data_proofs = vec![lhs_data, (rhs_data.0, modified_proof)];
+
+        let recursive_data = recursive_proofs::<F, C, D>(&data_proofs, None);
+        let (recursive_cd, recursive_proof) = recursive_data.unwrap();
+        recursive_cd.verify(recursive_proof).unwrap();
+    }
+
+    #[test]
+    fn test_recursive_proofs_reuse_circuit_valid() -> anyhow::Result<()> {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        // choose 1/3 to check whether func works with 2/3 of the value
+        let v1_3: u64 = random::<u32>() as u64;
+        let v: u64 = v1_3 * 3;
+        // more then 2/3
+        let v1: u64 = ((v / 3) * 2) + 5;
+
+        let v_bits = v.to_be_bytes();
+        let v_i_bits = v1.to_be_bytes();
+        let lhs_data = two_thirds::<F, C, D>(&v_i_bits, &v_bits)?;
+        let rhs_data = two_thirds::<F, C, D>(&v_i_bits, &v_bits)?;
+
+        let proofs = vec![lhs_data.1, rhs_data.1];
+
+        let recursive_data = recursive_proofs_reuse_circuit::<F, C, D>(&lhs_data.0, &proofs, None);
+        assert!(recursive_data.is_ok());
+        let (recursive_cd, recursive_proof) = recursive_data?;
+        assert!(recursive_cd.verify(recursive_proof).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_recursive_proofs_reuse_circuit_invalid() {
+        const D: usize = 2;
+        type C = PoseidonGoldilocksConfig;
+        type F = <C as GenericConfig<D>>::F;
+
+        // choose 1/3 to check whether func works with 2/3 of the value
+        let v1_3: u64 = random::<u32>() as u64;
+        let v: u64 = v1_3 * 3;
+        // more then 2/3
+        let v1: u64 = ((v / 3) * 2) + 5;
+
+        let v_bits = v.to_be_bytes();
+        let v_i_bits = v1.to_be_bytes();
+        let lhs_data = two_thirds::<F, C, D>(&v_i_bits, &v_bits).unwrap();
+        let rhs_data = two_thirds::<F, C, D>(&v_i_bits, &v_bits).unwrap();
+
+        let (_, mut modified_proof) = rhs_data.clone();
+
+        modified_proof.public_inputs[rhs_data.1.public_inputs.len() - 1] =
+            F::from_canonical_u64(10000);
+        let proofs = vec![lhs_data.1, modified_proof];
+
+        let recursive_data = recursive_proofs_reuse_circuit::<F, C, D>(&lhs_data.0, &proofs, None);
+        let (recursive_cd, recursive_proof) = recursive_data.unwrap();
+        recursive_cd.verify(recursive_proof).unwrap();
+    }
+}
