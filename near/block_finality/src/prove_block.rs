@@ -91,7 +91,7 @@ pub fn generate_signed_message(
     nb_prev_hash: CryptoHash,
 ) -> Vec<u8> {
     Approval::get_data_for_sig(
-            &if bh_height + 1 == nb_height {
+        &if bh_height + 1 == nb_height {
             // If the next block exists, the validators sign the hash of the previous one
             ApprovalInner::Endorsement(nb_prev_hash)
         } else {
@@ -1280,7 +1280,8 @@ mod tests {
                     - PK_BYTES)
                     ..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES)],
                 HeaderData {
-                    prev_hash: prev_epoch_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)].to_vec(),
+                    prev_hash: prev_epoch_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)]
+                        .to_vec(),
                     inner_lite: prev_epoch_block_header_bytes
                         [(TYPE_BYTE + PK_BYTES)..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)]
                         .to_vec(),
@@ -1309,10 +1310,7 @@ mod tests {
                 approvals_bytes,
                 validators_bytes,
                 None,
-                (
-                    &data.verifier_data(),
-                    &proof
-                ),
+                (&data.verifier_data(), &proof),
                 &mut timing_tree
             )?
         );
@@ -1321,5 +1319,4 @@ mod tests {
 
         Ok(())
     }
-
 }

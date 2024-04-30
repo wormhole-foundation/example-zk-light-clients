@@ -245,10 +245,10 @@ mod tests {
 
     #[test]
     fn test_vec_u32_to_u8_random() {
-	for i in 0..10000 {
-	    let data: Vec<u32> = (0..i).map(|_| random::<u32>() as u32).collect();
-	    vec_u32_to_u8(&data);
-	}
+        for i in 0..10000 {
+            let data: Vec<u32> = (0..i).map(|_| random::<u32>() as u32).collect();
+            vec_u32_to_u8(&data);
+        }
     }
 
     #[test]
@@ -259,14 +259,13 @@ mod tests {
 
     #[test]
     fn test_vec_u8_to_u32_random() {
-	let mut i = 0;
+        let mut i = 0;
         while i < 10000 {
             let data: Vec<u8> = (0..i).map(|_| random::<u8>() as u8).collect();
             vec_u8_to_u32(&data);
-	    if i == 0 {
+            if i == 0 {
                 i = 4;
-            }
-            else {
+            } else {
                 i *= 2;
             }
         }
@@ -303,10 +302,10 @@ mod tests {
 
     #[test]
     fn test_get_sha256_hash_random() {
-	for i in 0..10000 {
-	    let data: Vec<u8> = (0..i).map(|_| random::<u8>() as u8).collect();
-	    let _ = get_sha256_hash(&data);
-	}
+        for i in 0..10000 {
+            let data: Vec<u8> = (0..i).map(|_| random::<u8>() as u8).collect();
+            let _ = get_sha256_hash(&data);
+        }
     }
 
     #[test]
@@ -317,17 +316,16 @@ mod tests {
 
     #[test]
     fn test_u8bit_to_u8byte_random() {
-	let mut i = 0;
-	while i < 10000 {
-	    let data: Vec<u8> = (0..i).map(|_| random::<u8>() as u8).collect();
-	    let _ = u8bit_to_u8byte(&data);
-	    if i == 0 {
-		i = 8;
-	    }
-	    else {
-		i *= 2;
-	    }
-	}        
+        let mut i = 0;
+        while i < 10000 {
+            let data: Vec<u8> = (0..i).map(|_| random::<u8>() as u8).collect();
+            let _ = u8bit_to_u8byte(&data);
+            if i == 0 {
+                i = 8;
+            } else {
+                i *= 2;
+            }
+        }
     }
 
     #[test]
