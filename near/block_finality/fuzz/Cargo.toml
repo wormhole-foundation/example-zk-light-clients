@@ -1,0 +1,19 @@
+[package]
+name = "block_finality-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+hex = "0.4.3"
+
+[dependencies.block_finality]
+path = ".."
+
+[workspace]
+members = ["."]
+
