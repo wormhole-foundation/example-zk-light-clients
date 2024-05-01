@@ -17,3 +17,9 @@ path = ".."
 [workspace]
 members = ["."]
 
+[[bin]]
+name = "bit_byte"
+path = "fuzz_targets/utils/bit_byte.rs"
+test = false
+doc = false
+
