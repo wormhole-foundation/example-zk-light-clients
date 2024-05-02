@@ -1,0 +1,48 @@
+[package]
+name = "block_finality-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+hex = "0.4.3"
+
+[dependencies.block_finality]
+path = ".."
+
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "bit_byte"
+path = "fuzz_targets/utils/bit_byte.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "u32u8"
+path = "fuzz_targets/utils/u32u8.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "decode_hex"
+path = "fuzz_targets/utils/decode_hex.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "get_sha256_hash"
+path = "fuzz_targets/utils/get_sha256_hash.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "u8u32"
+path = "fuzz_targets/utils/u8u32.rs"
+test = false
+doc = false
