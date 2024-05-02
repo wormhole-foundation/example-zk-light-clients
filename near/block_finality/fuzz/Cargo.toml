@@ -30,6 +30,12 @@ test = false
 doc = false
 
 [[bin]]
+name = "decode_hex"
+path = "fuzz_targets/utils/decode_hex.rs"
+test = false
+doc = false
+
+[[bin]]
 name = "get_sha256_hash"
 path = "fuzz_targets/utils/get_sha256_hash.rs"
 test = false
