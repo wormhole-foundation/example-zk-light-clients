@@ -24,6 +24,12 @@ test = false
 doc = false
 
 [[bin]]
+name = "u32u8"
+path = "fuzz_targets/utils/u32u8.rs"
+test = false
+doc = false
+
+[[bin]]
 name = "get_sha256_hash"
 path = "fuzz_targets/utils/get_sha256_hash.rs"
 test = false
