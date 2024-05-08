@@ -23,6 +23,12 @@ path = ".."
 members = ["."]
 
 [[bin]]
+name = "ed25519_proof"
+path = "fuzz_targets/prove_crypto/ed25519_proof.rs"
+test = false
+doc = false
+
+[[bin]]
 name = "sha256_proof"
 path = "fuzz_targets/prove_crypto/sha256_proof.rs"
 test = false
