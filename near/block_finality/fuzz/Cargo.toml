@@ -34,3 +34,8 @@ path = "fuzz_targets/prove_crypto/sha256_proof.rs"
 test = false
 doc = false
 
+[[bin]]
+name = "prove_sub_hashes"
+path = "fuzz_targets/prove_crypto/prove_sub_hashes.rs"
+test = false
+doc = false
