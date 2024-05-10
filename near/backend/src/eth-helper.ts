@@ -128,7 +128,7 @@ const web3Account = web3.eth.accounts.privateKeyToAccount('0x' + privateKey);
 export const executeContractCall = async (input: string[], proof: string[]) => {
   const estimateGas = await contract.methods
     .verifyAndSaveProof(input, proof)
-    .estimateGas({ from:  web3Account.address });
+    .estimateGas({ from: web3Account.address });
 
   const signedTx = await web3.eth.accounts.signTransaction(
     {
