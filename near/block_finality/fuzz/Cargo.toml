@@ -39,3 +39,9 @@ name = "prove_sub_hashes"
 path = "fuzz_targets/prove_crypto/prove_sub_hashes.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "ed25519_circuit_targets_caching"
+path = "fuzz_targets/prove_crypto/ed25519_circuit_targets_caching.rs"
+test = false
+doc = false
