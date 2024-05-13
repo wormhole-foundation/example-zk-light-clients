@@ -23,3 +23,9 @@ name = "prove_eq_array"
 path = "fuzz_targets/prove_primitives/prove_eq_array.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "two_thirds"
+path = "fuzz_targets/prove_primitives/two_thirds.rs"
+test = false
+doc = false
