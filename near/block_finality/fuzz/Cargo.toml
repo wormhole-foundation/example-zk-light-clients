@@ -1,0 +1,25 @@
+[package]
+name = "block_finality"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+# mb change to workspace dependencies
+plonky2 = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "2244a9d802aa74f15c32ca7f4139959c61126819", features = ["parallel"] }
+
+[dependencies.block_finality]
+path = ".."
+
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "prove_eq_array"
+path = "fuzz_targets/prove_primitives/prove_eq_array.rs"
+test = false
+doc = false
