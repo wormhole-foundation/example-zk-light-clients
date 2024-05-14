@@ -23,3 +23,9 @@ name = "recursive_proof"
 path = "fuzz_targets/recursion/recursive_proof.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "recursive_proofs"
+path = "fuzz_targets/recursion/recursive_proofs.rs"
+test = false
+doc = false
