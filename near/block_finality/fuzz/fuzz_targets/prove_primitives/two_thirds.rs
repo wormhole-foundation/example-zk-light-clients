@@ -1,8 +1,8 @@
 #![no_main]
 
-use plonky2::plonk::config::{PoseidonGoldilocksConfig, GenericConfig};
 use block_finality::prove_primitives::two_thirds;
 use libfuzzer_sys::fuzz_target;
+use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
 fuzz_target!(|data: &[u8]| {
     const D: usize = 2;
@@ -34,5 +34,3 @@ fuzz_target!(|data: &[u8]| {
 
     assert!(data.verify(proof).is_ok(), "Proof verification failed");
 });
-
-

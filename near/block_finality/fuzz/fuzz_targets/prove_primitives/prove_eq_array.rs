@@ -1,8 +1,8 @@
 #![no_main]
 
-use plonky2::plonk::config::{PoseidonGoldilocksConfig, GenericConfig};
 use block_finality::prove_primitives::prove_eq_array;
 use libfuzzer_sys::fuzz_target;
+use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
 fuzz_target!(|data: &[u8]| {
     const D: usize = 2;
