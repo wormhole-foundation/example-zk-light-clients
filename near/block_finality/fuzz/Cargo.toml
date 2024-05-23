@@ -45,3 +45,9 @@ name = "ed25519_circuit_targets_caching"
 path = "fuzz_targets/prove_crypto/ed25519_circuit_targets_caching.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "ed25519_proof_reuse_circuit"
+path = "fuzz_targets/prove_crypto/ed25519_proof_reuse_circuit.rs"
+test = false
+doc = false
