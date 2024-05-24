@@ -1,7 +1,10 @@
 #![no_main]
 
 use ed25519_compact::*;
-use plonky2::plonk::{config::{PoseidonGoldilocksConfig, GenericConfig}, circuit_data::CircuitData};
+use plonky2::plonk::{
+    circuit_data::CircuitData,
+    config::{GenericConfig, PoseidonGoldilocksConfig},
+};
 use plonky2_ed25519::gadgets::eddsa::EDDSATargets;
 use std::collections::HashMap;
 
@@ -21,11 +24,14 @@ fuzz_target!(|data: &[u8]| {
         data.to_vec()
     };
 
-    let mut circuit_data_targets: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> = HashMap::new();
+    let mut circuit_data_targets: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> =
+        HashMap::new();
 
-    let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(msg1.len(), &mut circuit_data_targets);
+    let (_data, _targets) =
+        get_ed25519_circuit_targets::<F, C, D>(msg1.len(), &mut circuit_data_targets);
     assert!(circuit_data_targets.len() == 1);
-    let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(msg2.len(), &mut circuit_data_targets);
+    let (_data, _targets) =
+        get_ed25519_circuit_targets::<F, C, D>(msg2.len(), &mut circuit_data_targets);
     if data.len() > 0 {
         assert!(circuit_data_targets.len() == 2);
     } else {

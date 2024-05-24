@@ -1,7 +1,7 @@
 #![no_main]
 
-use plonky2::plonk::config::{PoseidonGoldilocksConfig, GenericConfig};
 use near_primitives::hash::hash;
+use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
 use libfuzzer_sys::fuzz_target;
 
@@ -16,7 +16,8 @@ fuzz_target!(|data: &[u8]| {
 
     let hash = hash(&data_vec);
 
-    let (data, proof) = sha256_proof_u32::<F, C, D>(&data_vec, &hash.0).expect("Error sha256 proof.");
+    let (data, proof) =
+        sha256_proof_u32::<F, C, D>(&data_vec, &hash.0).expect("Error sha256 proof.");
 
     assert!(data.verify(proof).is_ok(), "Proof verification failed.");
 });

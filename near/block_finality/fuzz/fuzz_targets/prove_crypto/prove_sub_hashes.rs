@@ -1,11 +1,11 @@
 #![no_main]
 
-use plonky2::plonk::config::{PoseidonGoldilocksConfig, GenericConfig};
 use near_primitives::hash::hash;
+use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
 
 use libfuzzer_sys::fuzz_target;
 
-use block_finality::prove_crypto::{sha256_proof_u32, prove_sub_hashes_u32};
+use block_finality::prove_crypto::{prove_sub_hashes_u32, sha256_proof_u32};
 
 fuzz_target!(|data: &[u8]| {
     const D: usize = 2;
@@ -21,11 +21,16 @@ fuzz_target!(|data: &[u8]| {
     let hash3 = hash(&msg3);
 
     let (d1, p1) = sha256_proof_u32::<F, C, D>(&msg1, &hash1.0).expect("Error proving first hash.");
-    d1.verify(p1.clone()).expect("First proof verification failed.");
-    let (d2, p2) = sha256_proof_u32::<F, C, D>(&msg2, &hash2.0).expect("Error proving second hash.");
-    d2.verify(p2.clone()).expect("Second proof verification failed.");
-    let (d3, p3) = sha256_proof_u32::<F, C, D>(&msg3, &hash3.0).expect("Error proving concatenated hashes.");
-    d3.verify(p3.clone()).expect("Third proof verification failed.");
+    d1.verify(p1.clone())
+        .expect("First proof verification failed.");
+    let (d2, p2) =
+        sha256_proof_u32::<F, C, D>(&msg2, &hash2.0).expect("Error proving second hash.");
+    d2.verify(p2.clone())
+        .expect("Second proof verification failed.");
+    let (d3, p3) =
+        sha256_proof_u32::<F, C, D>(&msg3, &hash3.0).expect("Error proving concatenated hashes.");
+    d3.verify(p3.clone())
+        .expect("Third proof verification failed.");
 
     let (data, proof) = prove_sub_hashes_u32(
         true,
@@ -35,8 +40,8 @@ fuzz_target!(|data: &[u8]| {
         Some(&hash3.0.to_vec()),
         (&d1.common, &d1.verifier_only, &p1),
         Some((&d2.common, &d2.verifier_only, &p2)),
-    ).expect("Error proving subhashes.");
+    )
+    .expect("Error proving subhashes.");
 
-    
     assert!(data.verify(proof).is_ok(), "Proof verification failed.");
 });
