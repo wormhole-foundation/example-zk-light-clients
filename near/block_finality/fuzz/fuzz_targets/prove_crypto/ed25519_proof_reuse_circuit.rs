@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 use libfuzzer_sys::fuzz_target;
 
-use block_finality::prove_crypto::{ed25519_proof, ed25519_proof_reuse_circuit};
+use block_finality::prove_crypto::ed25519_proof_reuse_circuit;
 
 fuzz_target!(|data: &[u8]| {
     const D: usize = 2;
