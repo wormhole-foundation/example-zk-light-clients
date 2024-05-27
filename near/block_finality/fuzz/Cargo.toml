@@ -1,0 +1,53 @@
+[package]
+name = "block_finality-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+hex = "0.4.3"
+# mb change to workspace dependencies
+plonky2 = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "2244a9d802aa74f15c32ca7f4139959c61126819", features = ["parallel"] }
+plonky2_ed25519 = { path = "../../crypto/plonky2_ed25519" }
+ed25519-compact = "2.0.4"
+near-primitives = "0.19.0"
+
+[dependencies.block_finality]
+path = ".."
+
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "ed25519_proof"
+path = "fuzz_targets/prove_crypto/ed25519_proof.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "sha256_proof"
+path = "fuzz_targets/prove_crypto/sha256_proof.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "prove_sub_hashes"
+path = "fuzz_targets/prove_crypto/prove_sub_hashes.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "ed25519_circuit_targets_caching"
+path = "fuzz_targets/prove_crypto/ed25519_circuit_targets_caching.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "ed25519_proof_reuse_circuit"
+path = "fuzz_targets/prove_crypto/ed25519_proof_reuse_circuit.rs"
+test = false
+doc = false
