@@ -267,7 +267,6 @@ pub fn get_ed25519_targets<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::decode_hex;
     use ed25519_compact::*;
     use plonky2::plonk::{circuit_data, config::PoseidonGoldilocksConfig};
     use plonky2_field::types::Field;
