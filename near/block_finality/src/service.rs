@@ -236,12 +236,12 @@ pub async fn prove_prev_epoch_block(
 
 #[cfg(test)]
 mod service_tests {
+    use super::*;
     use crate::utils::{load_block_header, load_validators};
     use anyhow::Result;
     use log::{info, Level};
     use near_primitives::borsh::BorshSerialize;
     use plonky2::plonk::config::PoseidonGoldilocksConfig;
-    use super::*;
 
     #[test]
     fn test_prove_current_epoch_block() -> Result<()> {
@@ -291,7 +291,8 @@ mod service_tests {
                     - PK_BYTES)
                     ..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES)],
                 HeaderData {
-                    prev_hash: prev_epoch_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)].to_vec(),
+                    prev_hash: prev_epoch_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)]
+                        .to_vec(),
                     inner_lite: prev_epoch_block_header_bytes
                         [(TYPE_BYTE + PK_BYTES)..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)]
                         .to_vec(),
@@ -320,10 +321,7 @@ mod service_tests {
                 approvals_bytes,
                 validators_bytes,
                 None,
-                (
-                    &data.verifier_data(),
-                    &proof
-                ),
+                (&data.verifier_data(), &proof),
                 &mut timing_tree
             )?
         );
@@ -357,7 +355,8 @@ mod service_tests {
                     - PK_BYTES)
                     ..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES - PK_BYTES)],
                 HeaderData {
-                    prev_hash: prev_epoch_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)].to_vec(),
+                    prev_hash: prev_epoch_block_header_bytes[TYPE_BYTE..(TYPE_BYTE + PK_BYTES)]
+                        .to_vec(),
                     inner_lite: prev_epoch_block_header_bytes
                         [(TYPE_BYTE + PK_BYTES)..(TYPE_BYTE + PK_BYTES + INNER_LITE_BYTES)]
                         .to_vec(),

@@ -1,8 +1,8 @@
 [workspace]
 members = [
+  "block_finality",
   "crypto/plonky2_ed25519",
   "crypto/plonky2_sha512",
-  "block_finality",
   "crypto/plonky2_sha256_u32",
   "crypto/plonky2_bn128"
 , "xtask"]
