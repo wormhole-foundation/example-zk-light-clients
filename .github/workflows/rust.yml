@@ -43,7 +43,6 @@ jobs:
         os:
           - ubuntu-latest
         package:
-          - "aptos"
       fail-fast: false
     env:
       RUSTFLAGS: -D warnings
@@ -71,7 +70,6 @@ jobs:
     strategy:
       matrix:
         package:
-          - "aptos"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
