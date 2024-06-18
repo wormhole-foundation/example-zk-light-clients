@@ -126,12 +126,16 @@ const privateKey = process.env.PRIVATE_KEY as string;
 const web3Account = web3.eth.accounts.privateKeyToAccount('0x' + privateKey);
 
 export const executeContractCall = async (input: string[], proof: string[]) => {
+  const estimateGas = await contract.methods
+    .verifyAndSaveProof(input, proof)
+    .estimateGas({ from: web3Account.address });
+
   const signedTx = await web3.eth.accounts.signTransaction(
     {
       from: web3Account.address,
       to: contractAddress,
-      gas: 1000000,
-      gasPrice: 1000000000,
+      gas: estimateGas + estimateGas / BigInt(10),
+      gasPrice: await web3.eth.getGasPrice(),
       nonce: '0x' + (await web3.eth.getTransactionCount(web3Account.address)).toString(16),
       data: contract.methods.verifyAndSaveProof(input, proof).encodeABI(),
     },
