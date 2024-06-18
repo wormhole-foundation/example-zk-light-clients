@@ -8,6 +8,10 @@
 
 A collection of ZK light client libraries for various blockchains.
 
+> [!IMPORTANT]
+> This repository is no longer maintained. Development has moved to [`https://github.com/lurk-lab/zk-light-clients/`](https://github.com/lurk-lab/zk-light-clients/)
+
+
 ## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE-MIT)
