@@ -61,6 +61,7 @@ where
     C::Hasher: AlgebraicHasher<F>,
     [(); C::Hasher::HASH_SIZE]:,
 {
+    assert_eq!(approvals.len(), validators.len());
     let mut ed25519_circuits: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> = HashMap::new();
     let mut agg_data_proof: Vec<(CircuitData<F, C, D>, ProofWithPublicInputs<F, C, D>)> = vec![];
     let mut valid_keys: Vec<u8> = vec![];
@@ -166,6 +167,7 @@ where
     C::Hasher: AlgebraicHasher<F>,
     [(); C::Hasher::HASH_SIZE]:,
 {
+    assert_eq!(approvals.len(), validators.len());
     let mut signature_circuit_data: Vec<CircuitData<F, C, D>> = Vec::with_capacity(1);
     let mut valid_keys: Vec<u8> = vec![];
     let result_subscriber = client.subscribe("PROCESS_SIGNATURE_RESULT")?;

@@ -113,7 +113,51 @@ where
     let length = builder.constant(F::from_canonical_usize(LEN));
     builder.connect(v1_length, length);
     builder.connect(v2_length, length);
-    // TODO: check that MSB is less than 100 for both values.
+    // Check that MSB is less than 100 for both values.
+    // Set values that indicates a negative difference.
+    // Negative difference could be in two forms: -1 and {-2, -255}.
+    let constant1 = builder.constant(F::from_canonical_u64(0xFFFFFFFEFFFFFF00));
+    let constant2 = builder.constant(F::from_canonical_u64(0xFFFFFFFF00000000));
+    let seven = builder.constant(F::from_canonical_u8(7));
+    let h = builder.constant(F::from_canonical_u8(100));
+    // Check MSB for v1_targets.
+    {
+        // The difference should be negative.
+        let sub = builder.sub(v1_targets[LEN - 1], h);
+        // If the difference is -1, then we use constant2, and constant1 otherwise.
+        let sub_eq = builder.is_equal(sub, neg_one);
+        let chs_constant = builder.select(sub_eq, constant2, constant1);
+        let chs_constant_bits = builder.split_le(chs_constant, 64);
+        let sub_bits = builder.split_le(sub, 64);
+        let mut s = zero;
+        // Check the values of bytes [0xFF 0xFF 0xFF 0xFF/0xFE 0x00/0xFF 0x00/0xFF 0x00/0xFF 0xXX], except the last one with the value 0xXX.
+        for j in (8..sub_bits.len()).step_by(8) {
+            let n1 = builder.le_sum(chs_constant_bits[j..(j + 8)].iter());
+            let n2 = builder.le_sum(sub_bits[j..(j + 8)].iter());
+            let q = builder.is_equal(n1, n2);
+            s = builder.add(s, q.target);
+        }
+        builder.connect(s, seven);
+    }
+    // Check MSB for v2_targets.
+    {
+        // The difference should be negative.
+        let sub = builder.sub(v2_targets[LEN - 1], h);
+        // If the difference is -1, then we use constant2, and constant1 otherwise.
+        let sub_eq = builder.is_equal(sub, neg_one);
+        let chs_constant = builder.select(sub_eq, constant2, constant1);
+        let chs_constant_bits = builder.split_le(chs_constant, 64);
+        let sub_bits = builder.split_le(sub, 64);
+        let mut s = zero;
+        // Check the values of bytes [0xFF 0xFF 0xFF 0xFF/0xFE 0x00/0xFF 0x00/0xFF 0x00/0xFF 0xXX], except the last one with the value 0xXX.
+        for j in (8..sub_bits.len()).step_by(8) {
+            let n1 = builder.le_sum(chs_constant_bits[j..(j + 8)].iter());
+            let n2 = builder.le_sum(sub_bits[j..(j + 8)].iter());
+            let q = builder.is_equal(n1, n2);
+            s = builder.add(s, q.target);
+        }
+        builder.connect(s, seven);
+    }
     // Compute 3 * value1.
     let mut v1_three_targets: Vec<Target> = builder.add_virtual_targets(v1_targets.len());
     let three = builder.constant(F::from_canonical_u8(3));
@@ -137,11 +181,6 @@ where
     }
     v2_two_targets.push(c);
     // Comparison: 3*value1 >= 2*value2.
-    // Set values that indicates a negative difference.
-    // Negative difference could be in two forms: for -1 and {-2, -255}.
-    let constant1 = builder.constant(F::from_canonical_u64(0xFFFFFFFEFFFFFF00));
-    let constant2 = builder.constant(F::from_canonical_u64(0xFFFFFFFF00000000));
-    let seven = builder.constant(F::from_canonical_u8(7));
     let mut prev = (BoolTarget::new_unsafe(zero), BoolTarget::new_unsafe(zero));
     let mut res: Vec<Target> = builder.add_virtual_targets(LEN);
     let mut i: isize = (LEN - 1) as isize;
@@ -149,7 +188,7 @@ where
         // Сheck the equality of elements of two arrays.
         let if_equal = builder.is_equal(v1_three_targets[i as usize], v2_two_targets[i as usize]);
         // Сheck if the difference is positive or negative.
-        // In the case of positive difference if_positive is zero, and seven otherwise.
+        // In the case of positive difference if_negative is zero, and seven otherwise.
         let if_negative = {
             // Note, we operate with 64-bit elements in the field.
             // In the case of negative difference we get a positive value of the form: order() - v2_two_targets[i].
@@ -171,19 +210,19 @@ where
             builder.connect(s, chs_s);
             s_eq
         };
-        // The first element is set according to the if_positive flag.
+        // The first element is set according to the if_negative flag.
         if (i as usize) == LEN - 1 {
             res[i as usize] = builder.select(
                 if_negative,
                 v2_two_targets[i as usize],
                 v1_three_targets[i as usize],
             );
-            // Store if_equal and if_positive flags.
+            // Store if_equal and if_negative flags.
             prev = (if_equal, if_negative);
         } else {
             // If prev=(false, false), res[i] is set to v1_three_targets[i].
-            // If prev=(true, false) or (false, true), then prev is set according to new if_equal and if_positive.
-            // res[i] is set to according to the if_positive flag.
+            // If prev=(true, false) or (false, true), then prev is set according to new if_equal and if_negative.
+            // res[i] is set to according to the if_negative flag.
             prev = {
                 let q = builder.is_equal(prev.0.target, prev.1.target);
                 let tmp1 = builder.select(q, prev.0.target, if_equal.target);

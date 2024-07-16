@@ -34,13 +34,11 @@ use std::fs;
 use std::fs::File;
 use std::io::BufWriter;
 
-/// Prove BFT finality of the block. The function may be used for both epoch & randomly selected blocks.
-///
-/// This function proved BFT finality for certain block(s) using four more blocks to ensure full finality.
+/// Set data for the given epochs.
 ///
 /// # Arguments
 ///
-/// * `epoch_id_i` - Epoch_id of the current epoch, i.e. Epoch_i.
+/// * `epoch_id_i` - Epoch_id of the current epoch i.
 /// * `epoch_id_i_1` - Epoch_id of Epoch_i-1.
 /// * `epoch_id_i_2` - Epoch_id of Epoch_i-2.
 /// * `epoch_id_i_3` - Epoch_id of Epoch_i-3.

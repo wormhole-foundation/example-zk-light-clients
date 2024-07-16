@@ -118,7 +118,7 @@ where
     }
     // Check that MSB is less than 100 (max number of validators) for both values.
     // Set values that indicates a negative difference.
-    // Negative difference could be in two forms: for -1 and {-2, -255}.
+    // Negative difference could be in two forms: -1 and {-2, -255}.
     let constant1 = builder.constant(F::from_canonical_u64(0xFFFFFFFEFFFFFF00));
     let constant2 = builder.constant(F::from_canonical_u64(0xFFFFFFFF00000000));
     let seven = builder.constant(F::from_canonical_u8(7));
@@ -140,7 +140,7 @@ where
             let q = builder.is_equal(n1, n2);
             s = builder.add(s, q.target);
         }
-        let s_eq = builder.is_equal(s, seven);
+        builder.connect(s, seven);
     }
     // Check MSB for all_stake_sum.
     {
@@ -159,7 +159,7 @@ where
             let q = builder.is_equal(n1, n2);
             s = builder.add(s, q.target);
         }
-        let s_eq = builder.is_equal(s, seven);
+        builder.connect(s, seven);
     }
     // Compute (3 * valid_stake_sum).
     let three = builder.constant(F::from_canonical_u8(3));
@@ -195,7 +195,7 @@ where
             all_stake_sum[i as usize],
         );
         // Сheck if the difference is positive or negative.
-        // In the case of positive difference if_positive is zero, and seven otherwise.
+        // In the case of positive difference if_negative is zero, and seven otherwise.
         let is_negative = {
             // Note, we operate with 64-bit elements in the field.
             // In the case of negative difference we get a positive value of the form: order() - all_stake_sum[i].
@@ -226,12 +226,12 @@ where
                 all_stake_sum[i as usize],
                 three_times_valid_stake_sum[i as usize],
             );
-            // Store if_equal and if_positive flags.
+            // Store if_equal and if_negative flags.
             prev = (is_equal, is_negative);
         } else {
             // If prev=(false, false), res[i] is set to v1_three_targets[i].
-            // If prev=(true, false) or (false, true), then prev is set according to new if_equal and if_positive.
-            // res[i] is set to according to the if_positive flag.
+            // If prev=(true, false) or (false, true), then prev is set according to new if_equal and if_negative.
+            // res[i] is set to according to the if_negative flag.
             prev = {
                 let q = builder.is_equal(prev.0.target, prev.1.target);
                 let tmp1 = builder.select(q, prev.0.target, is_equal.target);
