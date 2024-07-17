@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "near_bft_finality",
   "crypto/plonky2_ed25519",
   "crypto/plonky2_sha512",
   "block_finality",
