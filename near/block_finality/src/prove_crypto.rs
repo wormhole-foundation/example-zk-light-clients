@@ -267,11 +267,10 @@ pub fn get_ed25519_targets<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::decode_hex;
+    use ed25519_compact::*;
     use plonky2::plonk::{circuit_data, config::PoseidonGoldilocksConfig};
     use plonky2_field::types::Field;
     use rand::random;
-    use ed25519_compact::*;
 
     #[test]
     fn test_prove_sub_hashes_u32_aggregation_correctness() -> Result<()> {
@@ -328,32 +327,26 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
 
-	const MSGLEN1: usize = 100;
-	const MSGLEN2: usize = 1000;        
-	
-	let msg1: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
-	let msg2: Vec<u8> = (0..MSGLEN2).map(|_| random::<u8>() as u8).collect();
-	let msg3: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
+        const MSGLEN1: usize = 100;
+        const MSGLEN2: usize = 1000;
 
-	assert_eq!(msg1.len(), msg3.len());
+        let msg1: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
+        let msg2: Vec<u8> = (0..MSGLEN2).map(|_| random::<u8>() as u8).collect();
+        let msg3: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
+
+        assert_eq!(msg1.len(), msg3.len());
 
         let mut circuit_data_targets: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> =
             HashMap::new();
 
-        let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
-            msg1.len(),
-            &mut circuit_data_targets,
-        );
+        let (_data, _targets) =
+            get_ed25519_circuit_targets::<F, C, D>(msg1.len(), &mut circuit_data_targets);
         assert!(circuit_data_targets.len() == 1);
-        let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
-            msg2.len(),
-            &mut circuit_data_targets,
-        );
+        let (_data, _targets) =
+            get_ed25519_circuit_targets::<F, C, D>(msg2.len(), &mut circuit_data_targets);
         assert!(circuit_data_targets.len() == 2);
-        let (_data, _targets) = get_ed25519_circuit_targets::<F, C, D>(
-            msg3.len(),
-            &mut circuit_data_targets,
-        );
+        let (_data, _targets) =
+            get_ed25519_circuit_targets::<F, C, D>(msg3.len(), &mut circuit_data_targets);
         assert!(circuit_data_targets.len() == 2);
 
         Ok(())
@@ -365,10 +358,10 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
 
-	const MSGLEN1: usize = 100;
+        const MSGLEN1: usize = 100;
         const MSGLEN2: usize = 1000;
 
-	let msg1: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
+        let msg1: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
         let keys1 = KeyPair::generate();
         let pk1 = keys1.pk.to_vec();
         let sig1 = keys1.sk.sign(msg1.clone(), None).to_vec();
@@ -388,28 +381,16 @@ mod tests {
         let mut circuit_data_targets: HashMap<usize, (CircuitData<F, C, D>, EDDSATargets)> =
             HashMap::new();
 
-        let (d1, p1) = ed25519_proof_reuse_circuit::<F, C, D>(
-            &msg1,
-            &sig1,
-            &pk1,
-            &mut circuit_data_targets,
-        )?;
+        let (d1, p1) =
+            ed25519_proof_reuse_circuit::<F, C, D>(&msg1, &sig1, &pk1, &mut circuit_data_targets)?;
         d1.verify(p1)?;
         assert!(circuit_data_targets.len() == 1);
-        let (d2, p2) = ed25519_proof_reuse_circuit::<F, C, D>(
-            &msg2,
-            &sig2,
-            &pk2,
-            &mut circuit_data_targets,
-        )?;
+        let (d2, p2) =
+            ed25519_proof_reuse_circuit::<F, C, D>(&msg2, &sig2, &pk2, &mut circuit_data_targets)?;
         d2.verify(p2)?;
         assert!(circuit_data_targets.len() == 2);
-        let (d3, p3) = ed25519_proof_reuse_circuit::<F, C, D>(
-            &msg3,
-            &sig3,
-            &pk3,
-            &mut circuit_data_targets,
-        )?;
+        let (d3, p3) =
+            ed25519_proof_reuse_circuit::<F, C, D>(&msg3, &sig3, &pk3, &mut circuit_data_targets)?;
         assert!(circuit_data_targets.len() == 2);
         d3.verify(p3)
     }
@@ -420,8 +401,8 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
 
-	const MSGLEN: usize = 100;
-        
+        const MSGLEN: usize = 100;
+
         let msg: Vec<u8> = (0..MSGLEN).map(|_| random::<u8>() as u8).collect();
         let keys = KeyPair::generate();
         let pk = keys.pk.to_vec();

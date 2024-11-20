@@ -443,15 +443,15 @@ mod tests {
     use plonky2::plonk::circuit_data::CircuitConfig;
     use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use rand::random;
-    use sha2::Sha512;
     use sha2::Digest;
+    use sha2::Sha512;
 
     #[test]
     fn test_sha512() -> Result<()> {
         const MSG_SIZE: usize = 128;
 
         let msg: Vec<u8> = (0..MSG_SIZE).map(|_| random::<u8>() as u8).collect();
-        
+
         let mut hasher = Sha512::new();
         hasher.update(msg.clone());
         let hash = hasher.finalize();
@@ -459,13 +459,13 @@ mod tests {
         let msg_bits = array_to_bits(&msg);
         let len = msg.len() * 8;
 
-	let hash_bits = array_to_bits(&hash);
-        
+        let hash_bits = array_to_bits(&hash);
+
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
-        
-	let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
+
+        let mut builder = CircuitBuilder::<F, D>::new(CircuitConfig::standard_recursion_config());
         let targets = sha512_circuit(&mut builder, len as u128);
         let mut pw = PartialWitness::new();
 
@@ -490,7 +490,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_sha512_failure() {
-	const MSG_SIZE: usize = 128;
+        const MSG_SIZE: usize = 128;
 
         let msg: Vec<u8> = (0..MSG_SIZE).map(|_| random::<u8>() as u8).collect();
         let msg1: Vec<u8> = (0..MSG_SIZE).map(|_| random::<u8>() as u8).collect();

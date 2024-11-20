@@ -406,7 +406,7 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
 
-	const MSGLEN: usize = 1000;
+        const MSGLEN: usize = 1000;
         let msg: Vec<u8> = (0..MSGLEN).map(|_| random::<u8>() as u8).collect();
         let mut hasher = Sha256::new();
         hasher.update(msg.as_slice());

@@ -236,7 +236,7 @@ mod tests {
         let v_bytes = v.to_be_bytes();
         let v_i_bytes = v1.to_be_bytes();
 
-        let (data, proof) = two_thirds::<F, C, D>(&v_i_bytes, &v_bytes).unwrap();;
+        let (data, proof) = two_thirds::<F, C, D>(&v_i_bytes, &v_bytes).unwrap();
         data.verify(proof).unwrap();
     }
 

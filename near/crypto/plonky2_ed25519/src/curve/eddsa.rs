@@ -65,8 +65,7 @@ mod tests {
 
     #[test]
     fn test_eddsa_native() {
-
-	const MSGLEN1: usize = 100;
+        const MSGLEN1: usize = 100;
         const MSGLEN2: usize = 1000;
 
         let msg1: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
@@ -77,19 +76,11 @@ mod tests {
         let msg2: Vec<u8> = (0..MSGLEN2).map(|_| random::<u8>() as u8).collect();
         let keys2 = KeyPair::generate();
         let pk2 = keys2.pk.to_vec();
-        let sig2 = keys2.sk.sign(msg2.clone(), None).to_vec();	
+        let sig2 = keys2.sk.sign(msg2.clone(), None).to_vec();
 
-        let result = verify_message(
-            &msg1,
-            &sig1,
-            &pk1,
-        );
+        let result = verify_message(&msg1, &sig1, &pk1);
         assert!(result);
-        let result = verify_message(
-            &msg2,
-            &sig2,
-            &pk2,
-        );
+        let result = verify_message(&msg2, &sig2, &pk2);
         assert!(result);
     }
 }

@@ -118,22 +118,22 @@ pub fn fill_ecdsa_targets<F: RichField + Extendable<D>, const D: usize>(
 
 #[cfg(test)]
 mod tests {
+    use crate::gadgets::eddsa::{ed25519_circuit, fill_ecdsa_targets};
     use anyhow::Result;
+    use ed25519_compact::KeyPair;
     use plonky2::iop::witness::PartialWitness;
     use plonky2::plonk::circuit_builder::CircuitBuilder;
     use plonky2::plonk::circuit_data::CircuitConfig;
     use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-    use rand::Rng;
-    use ed25519_compact::KeyPair;
     use rand::random;
-    use crate::gadgets::eddsa::{ed25519_circuit, fill_ecdsa_targets};
+    use rand::Rng;
 
     fn test_eddsa_circuit_with_config(config: CircuitConfig) -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
 
-	const MSGLEN1: usize = 100;
+        const MSGLEN1: usize = 100;
 
         let msg1: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
         let keys1 = KeyPair::generate();
@@ -145,13 +145,7 @@ mod tests {
 
         let targets = ed25519_circuit(&mut builder, msg1.len() * 8);
 
-        fill_ecdsa_targets::<F, D>(
-            &mut pw,
-            &msg1,
-            &sig1,
-            &pk1,
-            &targets,
-        );
+        fill_ecdsa_targets::<F, D>(&mut pw, &msg1, &sig1, &pk1, &targets);
 
         dbg!(builder.num_gates());
         let data = builder.build::<C>();
@@ -164,7 +158,7 @@ mod tests {
         type C = PoseidonGoldilocksConfig;
         type F = <C as GenericConfig<D>>::F;
 
-	const MSGLEN1: usize = 100;
+        const MSGLEN1: usize = 100;
 
         let msg1: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
         let msg2: Vec<u8> = (0..MSGLEN1).map(|_| random::<u8>() as u8).collect();
@@ -177,13 +171,7 @@ mod tests {
 
         let targets = ed25519_circuit(&mut builder, msg1.len() * 8);
 
-        fill_ecdsa_targets::<F, D>(
-            &mut pw,
-            &msg1,
-            &sig1,
-            &pk1,
-            &targets,
-        );
+        fill_ecdsa_targets::<F, D>(&mut pw, &msg1, &sig1, &pk1, &targets);
 
         dbg!(builder.num_gates());
         let data = builder.build::<C>();
