@@ -1,0 +1,31 @@
+[package]
+name = "block_finality-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+# mb change to workspace dependencies
+plonky2 = { git = "https://github.com/wormhole-foundation/plonky2-near", rev = "2244a9d802aa74f15c32ca7f4139959c61126819", features = ["parallel"] }
+
+[dependencies.block_finality]
+path = ".."
+
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "recursive_proof"
+path = "fuzz_targets/recursion/recursive_proof.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "recursive_proofs"
+path = "fuzz_targets/recursion/recursive_proofs.rs"
+test = false
+doc = false
